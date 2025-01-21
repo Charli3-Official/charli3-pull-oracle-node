@@ -76,16 +76,18 @@ def validate_timestamp(tx_validity: dict[str, int], timestamp: int) -> None:
     Validate timestamp is within transaction validity interval
 
     Args:
-        tx_validity: Dict with start and end timestamps
-        timestamp: Timestamp to validate
+        tx_validity: dict with start and end timestamps
+        timestamp: int timestamp to validate
 
     Raises:
         TimestampValidationError: If timestamp is outside validity interval
     """
-    if not tx_validity["start"] <= timestamp <= tx_validity["end"]:
+    start = tx_validity.start if hasattr(tx_validity, "start") else tx_validity["start"]
+    end = tx_validity.end if hasattr(tx_validity, "end") else tx_validity["end"]
+
+    if not start <= timestamp <= end:
         raise TimestampValidationError(
-            f"Timestamp {timestamp} outside validity interval "
-            f"[{tx_validity['start']}, {tx_validity['end']}]"
+            f"Timestamp {timestamp} outside validity interval " f"[{start}, {end}]"
         )
 
 

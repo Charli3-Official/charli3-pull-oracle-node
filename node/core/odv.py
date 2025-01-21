@@ -55,7 +55,7 @@ class OdvService:
 
             timestamp = get_current_timestamp()
 
-            validate_timestamp(request.tx_validity_interval, timestamp)
+            validate_timestamp(request.tx_validity_interval.model_dump(), timestamp)
             await validate_node_registration(
                 self.tx_manager,
                 self.oracle_addr,

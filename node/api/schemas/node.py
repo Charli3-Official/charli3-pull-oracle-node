@@ -1,5 +1,6 @@
 from typing import Any
 
+from api.schemas.common import TxValidityInterval
 from pydantic import BaseModel, Field
 
 
@@ -7,8 +8,9 @@ class NodeFeedRequest(BaseModel):
     """Request for oracle feed value"""
 
     oracle_nft_policy_id: str = Field(..., description="Oracle NFT policy ID")
-    tx_validity_interval: dict[str, int] = Field(
-        ..., description="Transaction validity interval {start: int, end: int}"
+    tx_validity_interval: TxValidityInterval = Field(
+        ...,
+        description="Transaction validity interval containing start and end timestamps",
     )
 
 
