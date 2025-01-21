@@ -14,16 +14,36 @@ Node:
 
 Rate:
   general_base_symbol: STUFF-ADA
+  general_quote_symbol: ADA-USD
   base_currency:
       dexes:
       - adapter: charli3-dendrite
         asset_a: 51a5e236c4de3af2b8020442e2a26f454fda3b04cb621c1294a0ef34424f4f4b
         asset_b: lovelace
-        quote_required: false
+        quote_required: true
         sources:
           - minswapv2
           - vyfi
           - wingriders
+          - sundaeswapv3
+          - muesliswap
+  quote_currency:
+      cexes:
+      - adapter: ccxt
+        asset_a: ADA
+        asset_b: USDT
+        quote_required: false
+        quote_calc_method: multiply
+        sources:
+          - binance
+          - kucoin
+          - bitmart
+          - coinbase
+          - mexc
+          - lbank
+          - huobi
+          - okx
+          - bitget
 
 ChainQuery:
   network: TESTNET
