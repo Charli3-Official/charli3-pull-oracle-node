@@ -1,0 +1,113 @@
+import logging
+
+from api.schemas.node import (
+    NodeAggregationSignRequest,
+    NodeAggregationSignResponse,
+    NodeFeedRequest,
+    NodeFeedResponse,
+)
+from charli3_offchain_core.blockchain.chain_query import ChainQuery
+from charli3_offchain_core.blockchain.transactions import TransactionManager
+from pycardano import (
+    PaymentExtendedSigningKey,
+    PaymentVerificationKey,
+    TransactionWitnessSet,
+    VerificationKeyHash,
+    VerificationKeyWitness,
+)
+
+from .aggregator import RateAggregator
+from .errors import NodeServiceError, RateAggregationError
+from .messages import OdvAggregationMessage, OdvFeedMessage
+from .validations import (
+    get_current_timestamp,
+    validate_node_registration,
+    validate_timestamp,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class OdvService:
+    """Service handling ODV (On-Demand Validation) operations"""
+
+    def __init__(
+        self,
+        rate_aggregator: RateAggregator,
+        chain_query: ChainQuery,
+        tx_manager: TransactionManager,
+        oracle_addr: str,
+        node_sk: PaymentExtendedSigningKey,
+        node_vk: PaymentVerificationKey,
+        node_vkh: VerificationKeyHash,
+    ):
+        self.rate_aggregator = rate_aggregator
+        self.chain_query = chain_query
+        self.tx_manager = tx_manager
+        self.oracle_addr = oracle_addr
+        self.node_sk = node_sk
+        self.node_vk = node_vk
+        self.node_vkh = node_vkh.to_primitive().hex()
+
+    async def handle_feed_request(self, request: NodeFeedRequest) -> NodeFeedResponse:
+        """Handle ODV feed request"""
+        try:
+
+            timestamp = get_current_timestamp()
+
+            validate_timestamp(request.tx_validity_interval, timestamp)
+            await validate_node_registration(
+                self.tx_manager,
+                self.oracle_addr,
+                self.node_vk,
+                request.oracle_nft_policy_id,
+            )
+
+            # Get and process rate
+            rate, _ = await self.rate_aggregator.fetch_all_rates()
+            if rate is None:
+                raise RateAggregationError("Failed to get aggregated rate for ODV feed")
+            feed_value = int(rate * 1_000_000)
+
+            # Create and sign feed message
+            message = OdvFeedMessage(
+                feed_value=feed_value,
+                timestamp=timestamp,
+                policy_id=request.oracle_nft_policy_id,
+            ).sign(self.node_sk)
+
+            return NodeFeedResponse(
+                feed=str(message.feed_value),
+                timestamp=message.timestamp,
+                verification_key=self.node_vkh,
+                signature=message.signature,
+            )
+
+        except (NodeServiceError, Exception) as e:
+            logger.error(str(e))
+            raise
+
+    async def handle_aggregation_sign_request(
+        self, request: NodeAggregationSignRequest
+    ) -> NodeAggregationSignResponse:
+        """Handle ODV aggregation transaction signing"""
+        try:
+            message = OdvAggregationMessage(
+                tx_cbor=request.tx_cbor, nodes_messages=request.nodes_messages
+            )
+            tx = message.decode_transaction()
+
+            witness = VerificationKeyWitness(
+                vkey=self.node_vk,
+                signature=self.node_sk.sign(tx.transaction_body.hash()),
+            )
+
+            if tx.transaction_witness_set is None:
+                tx.transaction_witness_set = TransactionWitnessSet()
+            tx.transaction_witness_set.vkey_witnesses.append(witness)
+
+            return NodeAggregationSignResponse(signed_tx_cbor=tx.to_cbor_hex())
+
+        except (NodeServiceError, Exception) as e:
+            logger.error(str(e))
+            raise
