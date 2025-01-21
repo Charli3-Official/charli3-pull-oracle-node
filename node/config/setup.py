@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 def setup_dendrite_backend(config):
     """Setup the backend based on the provided configuration."""
     # Extract chain configuration (blockfrost or ogmios)
-    chain_query_config = config.chain_query  # Access directly
+    chain_query_config = config.chain_query
     external_config = chain_query_config.external
 
     network = chain_query_config.network.lower()
