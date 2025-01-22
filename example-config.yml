@@ -1,0 +1,58 @@
+Updater:
+  odv_fulfillment_inter: 60  # seconds
+  verbosity: INFO
+  percent_resolution: 10000
+
+Node:
+  mnemonic: cute emerge mixed expose spider can street mountain explain soup reopen wagon soldier account spot buddy cream evolve inherit alone pledge treat myth coil
+  oracle_curr: 899eaef62a0d76b4202ca4b6fa81f629e1ab6208f9299d155b093a42
+  oracle_address: addr_test1wpt8lyduep82jux8cd7nec86m4cp0p4ndlfn0eudsgw436ge783e3
+  c3_token_hash: c9c4ada29e8640077a03ec2a6982f867f356ba1d7e25d19232372828
+  c3_token_name: TestC3
+  reward_collection_trigger: 100000000
+  reward_destination_address: "addr_test1wqf99gagnjgfamek9v9vyrwulwh64xdnerq9xkvfhwyeu3qdufj2x"
+
+Rate:
+  general_base_symbol: STUFF-ADA
+  general_quote_symbol: ADA-USD
+  base_currency:
+      dexes:
+      - adapter: charli3-dendrite
+        asset_a: 51a5e236c4de3af2b8020442e2a26f454fda3b04cb621c1294a0ef34424f4f4b
+        asset_b: lovelace
+        quote_required: true
+        sources:
+          - minswapv2
+          - vyfi
+          - wingriders
+          - sundaeswapv3
+          - muesliswap
+  quote_currency:
+      cexes:
+      - adapter: ccxt
+        asset_a: ADA
+        asset_b: USDT
+        quote_required: false
+        quote_calc_method: multiply
+        sources:
+          - binance
+          - kucoin
+          - bitmart
+          - coinbase
+          - mexc
+          - lbank
+          - huobi
+          - okx
+          - bitget
+
+ChainQuery:
+  network: TESTNET
+
+  ogmios:
+    ws_url: ws://preprod-or-mainnet-ws-url
+    kupo_url: http://preprod-or-mainnet-kupo-url
+
+  external:
+    ogmios:
+      ws_url: ws://mainnet-ws-url
+      kupo_url: http://mainnet-kupo-url
