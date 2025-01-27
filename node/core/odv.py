@@ -8,9 +8,14 @@ from api.schemas.node import (
 )
 from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
+from charli3_offchain_core.models.node_types import (
+    OracleNodeMessage,
+    SignedOracleNodeMessage,
+)
 from pycardano import (
     PaymentExtendedSigningKey,
     PaymentVerificationKey,
+    Transaction,
     TransactionWitnessSet,
     VerificationKeyHash,
     VerificationKeyWitness,
@@ -18,7 +23,6 @@ from pycardano import (
 
 from .aggregator import RateAggregator
 from .errors import NodeServiceError, RateAggregationError
-from .messages import OdvAggregationMessage, OdvFeedMessage
 from .validations import (
     get_current_timestamp,
     validate_node_registration,
@@ -52,10 +56,10 @@ class OdvService:
     async def handle_feed_request(self, request: NodeFeedRequest) -> NodeFeedResponse:
         """Handle ODV feed request"""
         try:
-
             timestamp = get_current_timestamp()
 
             validate_timestamp(request.tx_validity_interval.model_dump(), timestamp)
+
             await validate_node_registration(
                 self.tx_manager,
                 self.oracle_addr,
@@ -67,21 +71,22 @@ class OdvService:
             rate, _ = await self.rate_aggregator.fetch_all_rates()
             if rate is None:
                 raise RateAggregationError("Failed to get aggregated rate for ODV feed")
-            feed_value = int(rate * 1_000_000)
 
-            # Create and sign feed message
-            message = OdvFeedMessage(
-                feed_value=feed_value,
+            # Create message
+            message = OracleNodeMessage(
+                feed=int(rate * 1_000_000),
                 timestamp=timestamp,
-                policy_id=request.oracle_nft_policy_id,
-            ).sign(self.node_sk)
-
-            return NodeFeedResponse(
-                feed=str(message.feed_value),
-                timestamp=message.timestamp,
-                verification_key=self.node_vkh,
-                signature=message.signature,
+                oracle_nft_policy_id=bytes.fromhex(request.oracle_nft_policy_id),
             )
+
+            # Sign message and return signature
+            signature = message.sign(self.node_sk)
+
+            return SignedOracleNodeMessage(
+                message=message,
+                verification_key=self.node_vk,
+                signature=signature,
+            ).to_json()
 
         except (NodeServiceError, Exception) as e:
             logger.error(str(e))
@@ -92,11 +97,13 @@ class OdvService:
     ) -> NodeAggregationSignResponse:
         """Handle ODV aggregation transaction signing"""
         try:
-            message = OdvAggregationMessage(
-                tx_cbor=request.tx_cbor, nodes_messages=request.nodes_messages
-            )
-            tx = message.decode_transaction()
+            for vkey_hex, data in request.nodes_messages.items():
+                signed_message = SignedOracleNodeMessage.from_json(data)
 
+                if not signed_message.validate():
+                    raise ValueError(f"Invalid signature for node {vkey_hex}")
+
+            tx = Transaction.from_cbor(request.tx_cbor)
             witness = VerificationKeyWitness(
                 vkey=self.node_vk,
                 signature=self.node_sk.sign(tx.transaction_body.hash()),

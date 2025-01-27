@@ -17,9 +17,10 @@ class NodeFeedRequest(BaseModel):
 class NodeFeedResponse(BaseModel):
     """Response containing signed feed value"""
 
-    feed: str = Field(..., description="Oracle feed value")
+    feed: int = Field(..., description="Oracle feed value")
     timestamp: int = Field(..., description="Feed timestamp")
-    verification_key: str = Field(..., description="Node's verification key hex")
+    oracle_nft_policy_id: str = Field(..., description="Oracle NFT policy ID")
+    verification_key: str = Field(..., description="Node's verification key")
     signature: str = Field(..., description="ed25519 signature hex")
 
 
