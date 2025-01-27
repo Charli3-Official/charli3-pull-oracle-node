@@ -88,3 +88,9 @@ class TransactionSigningError(MessageError):
     """Failed to sign transaction."""
 
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
+class InvalidNodeSignatureError(ValidationError):
+    """Error when a node's signature is invalid during validation."""
+
+    status_code = status.HTTP_400_BAD_REQUEST

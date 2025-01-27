@@ -374,17 +374,17 @@ requests = "*"
 
 [[package]]
 name = "boto3"
-version = "1.36.6"
+version = "1.36.7"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.36.6-py3-none-any.whl", hash = "sha256:6d473f0f340d02b4e9ad5b8e68786a09728101a8b950231b89ebdaf72b6dca21"},
-    {file = "boto3-1.36.6.tar.gz", hash = "sha256:b36feae061dc0793cf311468956a0a9e99215ce38bc99a1a4e55a5b105f16297"},
+    {file = "boto3-1.36.7-py3-none-any.whl", hash = "sha256:ab501f75557863e2d2c9fa731e4fe25c45f35e0d92ea0ee11a4eaa63929d3ede"},
+    {file = "boto3-1.36.7.tar.gz", hash = "sha256:ae98634efa7b47ced1b0d7342e2940b32639eee913f33ab406590b8ed55ee94b"},
 ]
 
 [package.dependencies]
-botocore = ">=1.36.6,<1.37.0"
+botocore = ">=1.36.7,<1.37.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.11.0,<0.12.0"
 
@@ -393,13 +393,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.36.6"
+version = "1.36.7"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.36.6-py3-none-any.whl", hash = "sha256:f77bbbb03fb420e260174650fb5c0cc142ec20a96967734eed2b0ef24334ef34"},
-    {file = "botocore-1.36.6.tar.gz", hash = "sha256:4864c53d638da191a34daf3ede3ff1371a3719d952cc0c6bd24ce2836a38dd77"},
+    {file = "botocore-1.36.7-py3-none-any.whl", hash = "sha256:a6c6772d777af2957ac9975207fac1ccc4ce101408b85e9b5e3c5ba0bb949102"},
+    {file = "botocore-1.36.7.tar.gz", hash = "sha256:9abc64bde5e7d8f814ea91d6fc0a8142511fc96427c19fe9209677c20a0c9e6e"},
 ]
 
 [package.dependencies]
@@ -496,13 +496,13 @@ test = ["coverage (>=7)", "hypothesis", "pytest"]
 
 [[package]]
 name = "ccxt"
-version = "4.4.50"
+version = "4.4.51"
 description = "A JavaScript / TypeScript / Python / C# / PHP cryptocurrency trading library with support for 100+ exchanges"
 optional = false
 python-versions = "*"
 files = [
-    {file = "ccxt-4.4.50-py2.py3-none-any.whl", hash = "sha256:4f2ce2f70fa7a41416626dd3b90288900fd9d5fa892989abd9a21e784058a5cb"},
-    {file = "ccxt-4.4.50.tar.gz", hash = "sha256:79d28a50c3aea21378fcbf054a95d1fca46cea50be9b1f6d9e67eee1fdb83ffe"},
+    {file = "ccxt-4.4.51-py2.py3-none-any.whl", hash = "sha256:a21eece77ee2bb59d7c63b35c155cbdbef2e4db5cc0cdb41f736ebba7b726f5d"},
+    {file = "ccxt-4.4.51.tar.gz", hash = "sha256:2d53548a3b96fb125a9f67cf04583adab700d80a465f92af8a274009a04d9fbe"},
 ]
 
 [package.dependencies]
@@ -1910,7 +1910,7 @@ tabulate = "^0.9.0"
 type = "git"
 url = "ssh://git@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git"
 reference = "feat/add-odv-message-models"
-resolved_reference = "ace1af5887ab1a1db3f679f7ee67674b88aab230"
+resolved_reference = "3e6e4650ad0fae99e6d42720e7a8dfe6dbae0f6e"
 
 [[package]]
 name = "ogmios"
