@@ -95,7 +95,7 @@ async def validate_aggregate_tx(
         signed_messages: dict of node verification key hex -> signed message data
 
     Returns:
-        Boolean indicating whether the transaction is valid or not
+        None
     """
     try:
         policy_ids = {data["oracle_nft_policy_id"] for data in signed_messages.values()}
