@@ -1,12 +1,8 @@
 """ODV protocol endpoints."""
 
 from api.dependencies import get_odv_service
-from api.schemas.node import (
-    NodeAggregationSignRequest,
-    NodeAggregationSignResponse,
-    NodeFeedRequest,
-    NodeFeedResponse,
-)
+from api.schemas.requests import NodeAggregationSignRequest, NodeFeedRequest
+from api.schemas.responses import NodeAggregationSignResponse, NodeFeedResponse
 from core.errors import NodeServiceError
 from core.odv import OdvService
 from fastapi import APIRouter, Depends
@@ -24,7 +20,10 @@ async def get_feed(
 ):
     """Handle ODV feed value request."""
     try:
-        return await odv_service.handle_feed_request(request)
+        response = await odv_service.handle_feed_request(
+            request.oracle_nft_policy_id, request.tx_validity_interval
+        )
+        return NodeFeedResponse.model_validate(response.model_dump())
     except NodeServiceError as e:
         return JSONResponse(
             status_code=e.status_code,
@@ -36,14 +35,17 @@ async def get_feed(
         )
 
 
-@router.post("/aggregation/sign", response_model=NodeAggregationSignResponse)
+@router.post("/sign", response_model=NodeAggregationSignResponse)
 async def sign_aggregation(
     request: NodeAggregationSignRequest,
     odv_service: OdvService = Depends(get_odv_service),
 ):
     """Handle ODV aggregation transaction signing."""
     try:
-        return await odv_service.handle_aggregation_sign_request(request)
+        tx_cbor = await odv_service.handle_aggregation_sign_request(
+            request.node_messages, request.tx_cbor
+        )
+        return NodeAggregationSignResponse(signed_tx_cbor=tx_cbor)
     except NodeServiceError as e:
         return JSONResponse(
             status_code=e.status_code,
