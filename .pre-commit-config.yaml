@@ -36,7 +36,7 @@ repos:
         always_run: true
       - id: poetry-lock
         name: poetry-lock
-        entry: sh -c 'poetry lock --check || (echo "poetry.lock needs to be updated; run poetry lock" && exit 1)'
+        entry: poetry lock --no-update
         language: system
         pass_filenames: false
         always_run: true
