@@ -4,12 +4,13 @@ version = "0.1.0"
 description = "Charli3 Multi-Sig ODV Node Backend"
 authors = ["talhahussain7 <talhahussainb@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
 PyYAML = "^6.0"
 pycardano = { git = "https://github.com/Charli3-Official/pycardano.git", branch = "odv-multisig"}
-odv-multisig-charli3-offchain-core = { git = "ssh://git@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git", branch = "main" }
+odv-multisig-charli3-offchain-core = { git = "https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git", branch = "feat/odv-client-oracle-node-flow" }
 charli3-dendrite = {git = "https://github.com/talhahussain7/charli3-dendrite.git", branch = "feat/odv-multisig"}
 aiohttp = "^3.8.4"
 python-json-logger = "^2.0.7"

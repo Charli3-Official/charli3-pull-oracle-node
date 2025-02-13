@@ -4,13 +4,10 @@ RUN pip install poetry
 
 WORKDIR /app
 
+RUN poetry config virtualenvs.create false
+
 COPY pyproject.toml poetry.lock ./
 
-COPY node/ ./node/
+COPY node/ /app/node/
 
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
-
-EXPOSE 8000
-
-CMD ["python", "node/main.py", "run", "-c", "config.yml"]
+RUN poetry install --no-interaction --no-ansi --no-root

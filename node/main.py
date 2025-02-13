@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
 
         # Initialize core components
         rate_aggregator = RateAggregator.from_config(config=config.rate)
-        node_sk, node_vk, node_vkh, _, _, _ = load_keys(config)
+        node_sk, node_vk, _, _, _, _ = load_keys(config)
         chain_query, tx_manager = setup_chain_query_and_tx_manager(config)
 
         # Initialize ODV service
@@ -47,7 +47,6 @@ async def lifespan(app: FastAPI):
             oracle_addr=config.node.oracle_address,
             node_sk=node_sk,
             node_vk=node_vk,
-            node_vkh=node_vkh,
         )
 
         logger.info("ODV Oracle Node started successfully")

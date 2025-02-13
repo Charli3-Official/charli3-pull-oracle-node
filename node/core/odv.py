@@ -1,29 +1,31 @@
 import logging
+from typing import Any
 
-from api.schemas.node import (
-    NodeAggregationSignRequest,
-    NodeAggregationSignResponse,
-    NodeFeedRequest,
-    NodeFeedResponse,
-)
 from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
+from charli3_offchain_core.models.base import TxValidityInterval
+from charli3_offchain_core.models.message import (
+    OracleNodeMessage,
+    SignedOracleNodeMessage,
+)
+from charli3_offchain_core.oracle.validations.aggregation import (
+    validate_is_node_registered,
+    validate_node_message_signatures,
+    validate_node_updates_and_aggregation_median,
+    validate_policy_id_in_messages,
+    validate_timestamp,
+    validate_transaction_datums,
+)
 from pycardano import (
     PaymentExtendedSigningKey,
     PaymentVerificationKey,
+    Transaction,
     TransactionWitnessSet,
-    VerificationKeyHash,
     VerificationKeyWitness,
 )
 
 from .aggregator import RateAggregator
-from .errors import NodeServiceError, RateAggregationError
-from .messages import OdvAggregationMessage, OdvFeedMessage
-from .validations import (
-    get_current_timestamp,
-    validate_node_registration,
-    validate_timestamp,
-)
+from .errors import NodeServiceError, RateAggregationError, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +41,6 @@ class OdvService:
         oracle_addr: str,
         node_sk: PaymentExtendedSigningKey,
         node_vk: PaymentVerificationKey,
-        node_vkh: VerificationKeyHash,
     ):
         self.rate_aggregator = rate_aggregator
         self.chain_query = chain_query
@@ -47,67 +48,85 @@ class OdvService:
         self.oracle_addr = oracle_addr
         self.node_sk = node_sk
         self.node_vk = node_vk
-        self.node_vkh = node_vkh.to_primitive().hex()
 
-    async def handle_feed_request(self, request: NodeFeedRequest) -> NodeFeedResponse:
+    async def handle_feed_request(
+        self, oracle_nft_policy_id: str, tx_validity_interval: TxValidityInterval
+    ) -> SignedOracleNodeMessage:
         """Handle ODV feed request"""
         try:
+            timestamp = self.chain_query.get_current_posix_chain_time_ms()
 
-            timestamp = get_current_timestamp()
+            validate_timestamp(tx_validity_interval.model_dump(), timestamp)
 
-            validate_timestamp(request.tx_validity_interval.model_dump(), timestamp)
-            await validate_node_registration(
+            await validate_is_node_registered(
                 self.tx_manager,
                 self.oracle_addr,
-                self.node_vk,
-                request.oracle_nft_policy_id,
+                oracle_nft_policy_id,
+                self.node_vk.hash(),
             )
 
             # Get and process rate
             rate, _ = await self.rate_aggregator.fetch_all_rates()
             if rate is None:
                 raise RateAggregationError("Failed to get aggregated rate for ODV feed")
-            feed_value = int(rate * 1_000_000)
 
-            # Create and sign feed message
-            message = OdvFeedMessage(
-                feed_value=feed_value,
+            # Create message
+            message = OracleNodeMessage(
+                feed=int(rate * 1_000_000),
                 timestamp=timestamp,
-                policy_id=request.oracle_nft_policy_id,
-            ).sign(self.node_sk)
-
-            return NodeFeedResponse(
-                feed=str(message.feed_value),
-                timestamp=message.timestamp,
-                verification_key=self.node_vkh,
-                signature=message.signature,
+                oracle_nft_policy_id=bytes.fromhex(oracle_nft_policy_id),
             )
+
+            # Sign message and return signature
+            signature = message.sign(self.node_sk)
+
+            signed_message = SignedOracleNodeMessage(
+                message=message,
+                signature=signature,
+                verification_key=self.node_vk,
+            )
+            return signed_message
 
         except (NodeServiceError, Exception) as e:
             logger.error(str(e))
             raise
 
     async def handle_aggregation_sign_request(
-        self, request: NodeAggregationSignRequest
-    ) -> NodeAggregationSignResponse:
-        """Handle ODV aggregation transaction signing"""
+        self, node_values: dict[str, Any], tx_cbor: str
+    ) -> str:
+        """Handle ODV aggregation transaction signing."""
         try:
-            message = OdvAggregationMessage(
-                tx_cbor=request.tx_cbor, nodes_messages=request.nodes_messages
+            tx = Transaction.from_cbor(tx_cbor)
+
+            # Validates the node message signatures
+            node_messages = validate_node_message_signatures(
+                [msg.model_dump() for msg in node_values.values()]
             )
-            tx = message.decode_transaction()
+            # Validates that all messages have the same policy_id
+            validate_policy_id_in_messages(node_messages)
 
-            witness = VerificationKeyWitness(
-                vkey=self.node_vk,
-                signature=self.node_sk.sign(tx.transaction_body.hash()),
+            # Validates and returns the reward and agg transport datums
+            reward_transport_datum, _ = validate_transaction_datums(
+                tx, self.oracle_addr
             )
 
-            if tx.transaction_witness_set is None:
-                tx.transaction_witness_set = TransactionWitnessSet()
-            tx.transaction_witness_set.vkey_witnesses.append(witness)
+            # Validates that the node updates and aggregation median are correct
+            if validate_node_updates_and_aggregation_median(
+                node_messages, reward_transport_datum.datum
+            ):
+                witness = VerificationKeyWitness(
+                    vkey=self.node_vk,
+                    signature=self.node_sk.sign(tx.transaction_body.hash()),
+                )
+                tx.transaction_witness_set = (
+                    tx.transaction_witness_set or TransactionWitnessSet()
+                )
+                tx.transaction_witness_set.vkey_witnesses.append(witness)
 
-            return NodeAggregationSignResponse(signed_tx_cbor=tx.to_cbor_hex())
+                return tx.to_cbor_hex()
+            else:
+                raise
 
-        except (NodeServiceError, Exception) as e:
-            logger.error(str(e))
+        except (NodeServiceError, ValidationError, Exception) as e:
+            logger.error(f"Aggregation sign request failed: {str(e)}")
             raise
