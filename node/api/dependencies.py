@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from core.errors import NodeNotInitializedError
-from core.odv import OdvService
+from node.core.errors import NodeNotInitializedError
+from node.core.odv import OdvService
 
 _odv_service: Optional[OdvService] = None
 

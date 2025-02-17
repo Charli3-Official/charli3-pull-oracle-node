@@ -7,11 +7,11 @@ from statistics import median
 from typing import Optional
 
 import numpy as np
-from config.models import ExchangeSource, RateConfig
-from services.price_fetcher.base import BaseAdapter, Rate
-from services.price_fetcher.ccxt import CCXTAdapter
-from services.price_fetcher.charli3_dendrite import Charli3DendriteAdapter
-from services.price_fetcher.generic_api import GenericAPIAdapter
+from node.config.models import ExchangeSource, RateConfig
+from node.services.price_fetcher.base import BaseAdapter, Rate
+from node.services.price_fetcher.ccxt import CCXTAdapter
+from node.services.price_fetcher.charli3_dendrite import Charli3DendriteAdapter
+from node.services.price_fetcher.generic_api import GenericAPIAdapter
 
 logger = logging.getLogger(__name__)
 

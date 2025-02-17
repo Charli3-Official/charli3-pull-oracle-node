@@ -11,7 +11,7 @@ from charli3_dendrite.backend.blockfrost import BlockFrostBackend
 from charli3_dendrite.backend.ogmios_kupo import OgmiosKupoBackend
 from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
-from logfiles.logging_config import LEVEL_COLORS, get_log_config
+from node.logfiles.logging_config import LEVEL_COLORS, get_log_config
 from pycardano import (
     BlockFrostChainContext,
     ExtendedSigningKey,
@@ -22,7 +22,7 @@ from pycardano import (
     VerificationKey,
 )
 
-from .models import AppConfig
+from node.config.models import AppConfig
 
 logger = logging.getLogger(__name__)
 

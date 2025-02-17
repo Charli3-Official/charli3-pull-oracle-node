@@ -6,10 +6,10 @@ import time
 from typing import Any, Optional, Union
 
 import aiohttp
-from config.models import SourceConfig
+from node.config.models import SourceConfig
 from yarl import URL
 
-from .base import BaseAdapter, Rate
+from node.services.price_fetcher.base import BaseAdapter, Rate
 
 logger = logging.getLogger(__name__)
 

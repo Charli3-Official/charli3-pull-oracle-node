@@ -1,11 +1,11 @@
 """ODV protocol endpoints."""
 
 import asyncio
-from api.dependencies import get_odv_service
-from api.schemas.requests import NodeAggregationSignRequest, NodeFeedRequest
-from api.schemas.responses import NodeAggregationSignResponse, NodeFeedResponse
-from core.errors import NodeServiceError
-from core.odv import OdvService
+from node.api.dependencies import get_odv_service
+from node.api.schemas.requests import NodeAggregationSignRequest, NodeFeedRequest
+from node.api.schemas.responses import NodeAggregationSignResponse, NodeFeedResponse
+from node.core.errors import NodeServiceError
+from node.core.odv import OdvService
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import JSONResponse
 

@@ -6,16 +6,16 @@ from contextlib import asynccontextmanager
 
 import click
 import uvicorn
-from api.dependencies import initialize_odv_service
-from api.endpoints import odv
-from config.models import AppConfig
-from config.setup import (
+from node.api.dependencies import initialize_odv_service
+from node.api.endpoints import odv
+from node.config.models import AppConfig
+from node.config.setup import (
     load_config,
     load_keys,
     setup_chain_query_and_tx_manager,
     setup_dendrite_backend,
 )
-from core.aggregator import RateAggregator
+from node.core.aggregator import RateAggregator
 from fastapi import FastAPI
 
 from node.background_tasks import periodic_reward_calculator

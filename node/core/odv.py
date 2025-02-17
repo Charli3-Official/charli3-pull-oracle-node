@@ -35,8 +35,8 @@ from pycardano import (
     AssetName,
 )
 
-from .aggregator import RateAggregator
-from .errors import NodeServiceError, RateAggregationError, ValidationError
+from node.core.aggregator import RateAggregator
+from node.core.errors import NodeServiceError, RateAggregationError, ValidationError
 
 logger = logging.getLogger(__name__)
 
