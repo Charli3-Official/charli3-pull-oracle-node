@@ -49,8 +49,11 @@ async def lifespan(app: FastAPI):
             node_vk=node_vk,
         )
 
+        # Initialize background tasks
+        lock_for_reward_calculator = asyncio.Lock()
+
         logger.info("ODV Oracle Node started successfully")
-        yield
+        yield {"lock_for_reward_calculator": lock_for_reward_calculator}
 
     except Exception as e:
         logger.error(f"Startup failed: {e}")
