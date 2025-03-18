@@ -1976,8 +1976,8 @@ tabulate = "^0.9.0"
 [package.source]
 type = "git"
 url = "https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git"
-reference = "bugfix/median-divergency-when-zero-iqr"
-resolved_reference = "964f0107ee204494e9b070efcceb68a01f902383"
+reference = "feature/node-bg-task-for-reward-calc"
+resolved_reference = "83e054641714745ae81e233ace6340c33378b8ea"
 
 [[package]]
 name = "ogmios"
@@ -3984,4 +3984,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "70ec758479f8de614817b58ed25b8f95f21a376b41376bfe95f6a8dea8248d2d"
+content-hash = "1e823ee0f19b7144951ee2954f7a057407829406eeddc27b920aa0bab7adf4b2"

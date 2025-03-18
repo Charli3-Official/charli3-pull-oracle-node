@@ -10,7 +10,7 @@ package-mode = false
 python = ">=3.10,<3.12"
 PyYAML = "^6.0"
 pycardano = { git = "https://github.com/Charli3-Official/pycardano.git", branch = "odv-multisig"}
-odv-multisig-charli3-offchain-core = { git = "https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git", branch = "bugfix/median-divergency-when-zero-iqr" }
+odv-multisig-charli3-offchain-core = { git = "https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git", branch = "feature/node-bg-task-for-reward-calc" }
 charli3-dendrite = {git = "https://github.com/talhahussain7/charli3-dendrite.git", branch = "feat/odv-multisig"}
 aiohttp = "^3.8.4"
 python-json-logger = "^2.0.7"

@@ -189,14 +189,15 @@ def load_keys(config: AppConfig) -> list:
     """
     hdwallet = HDWallet.from_mnemonic(config.node.mnemonic)
 
-    # Generate node keys (for oracle operations)
-    node_hdwallet = hdwallet.derive_from_path("m/1852'/1815'/0'/0/0")
+    # Generate node keys (for signing oracle feed)
+    # using purpose 4343 (m / purpose' / coin_type' / account' / role / index)
+    node_hdwallet = hdwallet.derive_from_path("m/4343'/1815'/0'/0/0")
     node_sk = ExtendedSigningKey.from_hdwallet(node_hdwallet)
     node_vk = PaymentVerificationKey.from_primitive(node_hdwallet.public_key)
     node_vkh = node_vk.hash()
 
     # Generate payment keys (for funds management)
-    payment_hdwallet = hdwallet.derive_from_path("m/1852'/1815'/0'/2/0")
+    payment_hdwallet = hdwallet.derive_from_path("m/1852'/1815'/0'/0/0")
     payment_sk = ExtendedSigningKey.from_hdwallet(payment_hdwallet)
     payment_vk = PaymentVerificationKey.from_primitive(payment_hdwallet.public_key)
     payment_vkh = payment_vk.hash()
