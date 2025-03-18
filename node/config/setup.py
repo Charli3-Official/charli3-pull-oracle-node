@@ -19,6 +19,7 @@ from pycardano import (
     KupoOgmiosV6ChainContext,
     Network,
     PaymentVerificationKey,
+    VerificationKey,
 )
 
 from .models import AppConfig
@@ -180,29 +181,36 @@ def load_keys(config: AppConfig) -> list:
 
     Returns:
         List containing in order:
-        - node_sk: Node signing key for oracle operations
-        - node_vk: Node verification key
-        - node_vkh: Node verification key hash
-        - payment_sk: Signing key for payments
-        - payment_vk: Verification key for payments
-        - payment_vkh: Payment verification key hash
+        - node_feed_sk: Node signing key for oracle operations
+        - node_feed_vk: Node verification key
+        - node_feed_vkh: Node verification key hash
+        - node_payment_sk: Signing key for payments
+        - node_payment_vk: Verification key for payments
+        - node_payment_vkh: Payment verification key hash
     """
     hdwallet = HDWallet.from_mnemonic(config.node.mnemonic)
 
     # Generate node keys (for signing oracle feed)
     # using purpose 4343 (m / purpose' / coin_type' / account' / role / index)
     node_hdwallet = hdwallet.derive_from_path("m/4343'/1815'/0'/0/0")
-    node_sk = ExtendedSigningKey.from_hdwallet(node_hdwallet)
-    node_vk = PaymentVerificationKey.from_primitive(node_hdwallet.public_key)
-    node_vkh = node_vk.hash()
+    node_feed_sk = ExtendedSigningKey.from_hdwallet(node_hdwallet)
+    node_feed_vk = VerificationKey.from_primitive(node_hdwallet.public_key)
+    node_feed_vkh = node_feed_vk.hash()
 
     # Generate payment keys (for funds management)
     payment_hdwallet = hdwallet.derive_from_path("m/1852'/1815'/0'/0/0")
-    payment_sk = ExtendedSigningKey.from_hdwallet(payment_hdwallet)
-    payment_vk = PaymentVerificationKey.from_primitive(payment_hdwallet.public_key)
-    payment_vkh = payment_vk.hash()
+    node_payment_sk = ExtendedSigningKey.from_hdwallet(payment_hdwallet)
+    node_payment_vk = PaymentVerificationKey.from_primitive(payment_hdwallet.public_key)
+    node_payment_vkh = node_payment_vk.hash()
 
-    return [node_sk, node_vk, node_vkh, payment_sk, payment_vk, payment_vkh]
+    return [
+        node_feed_sk,
+        node_feed_vk,
+        node_feed_vkh,
+        node_payment_sk,
+        node_payment_vk,
+        node_payment_vkh,
+    ]
 
 
 def setup_logging(config: dict) -> logging.Logger:

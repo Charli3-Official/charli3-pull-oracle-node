@@ -1977,7 +1977,7 @@ tabulate = "^0.9.0"
 type = "git"
 url = "https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git"
 reference = "feature/node-bg-task-for-reward-calc"
-resolved_reference = "83e054641714745ae81e233ace6340c33378b8ea"
+resolved_reference = "88c26efb4095760e3c7f01fccdf2ff503fa58902"
 
 [[package]]
 name = "ogmios"

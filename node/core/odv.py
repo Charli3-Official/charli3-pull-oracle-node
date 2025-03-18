@@ -22,6 +22,8 @@ from pycardano import (
     Transaction,
     TransactionWitnessSet,
     VerificationKeyWitness,
+    ExtendedSigningKey,
+    VerificationKey,
 )
 
 from .aggregator import RateAggregator
@@ -39,15 +41,19 @@ class OdvService:
         chain_query: ChainQuery,
         tx_manager: TransactionManager,
         oracle_addr: str,
-        node_sk: PaymentExtendedSigningKey,
-        node_vk: PaymentVerificationKey,
+        node_feed_sk: ExtendedSigningKey,
+        node_feed_vk: VerificationKey,
+        node_payment_sk: PaymentExtendedSigningKey,
+        node_payment_vk: PaymentVerificationKey,
     ):
         self.rate_aggregator = rate_aggregator
         self.chain_query = chain_query
         self.tx_manager = tx_manager
         self.oracle_addr = oracle_addr
-        self.node_sk = node_sk
-        self.node_vk = node_vk
+        self.node_feed_sk = node_feed_sk
+        self.node_feed_vk = node_feed_vk
+        self.node_payment_sk = node_payment_sk
+        self.node_payment_vk = node_payment_vk
 
     async def handle_feed_request(
         self, oracle_nft_policy_id: str, tx_validity_interval: TxValidityInterval
@@ -62,7 +68,7 @@ class OdvService:
                 self.tx_manager,
                 self.oracle_addr,
                 oracle_nft_policy_id,
-                self.node_vk.hash(),
+                self.node_feed_vk.hash(),
             )
 
             # Get and process rate
@@ -78,12 +84,12 @@ class OdvService:
             )
 
             # Sign message and return signature
-            signature = message.sign(self.node_sk)
+            signature = message.sign(self.node_feed_sk)
 
             signed_message = SignedOracleNodeMessage(
                 message=message,
                 signature=signature,
-                verification_key=self.node_vk,
+                verification_key=self.node_feed_vk,
             )
             return signed_message
 
@@ -115,8 +121,8 @@ class OdvService:
                 node_messages, reward_transport_datum.datum
             ):
                 witness = VerificationKeyWitness(
-                    vkey=self.node_vk,
-                    signature=self.node_sk.sign(tx.transaction_body.hash()),
+                    vkey=self.node_feed_vk,
+                    signature=self.node_feed_sk.sign(tx.transaction_body.hash()),
                 )
                 tx.transaction_witness_set = (
                     tx.transaction_witness_set or TransactionWitnessSet()

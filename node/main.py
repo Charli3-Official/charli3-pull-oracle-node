@@ -36,7 +36,9 @@ async def lifespan(app: FastAPI):
 
         # Initialize core components
         rate_aggregator = RateAggregator.from_config(config=config.rate)
-        node_sk, node_vk, _, _, _, _ = load_keys(config)
+        node_feed_sk, node_feed_vk, _, node_payment_sk, node_payment_vk, _ = load_keys(
+            config
+        )
         chain_query, tx_manager = setup_chain_query_and_tx_manager(config)
 
         # Initialize ODV service
@@ -45,8 +47,10 @@ async def lifespan(app: FastAPI):
             chain_query=chain_query,
             tx_manager=tx_manager,
             oracle_addr=config.node.oracle_address,
-            node_sk=node_sk,
-            node_vk=node_vk,
+            node_feed_sk=node_feed_sk,
+            node_feed_vk=node_feed_vk,
+            node_payment_sk=node_payment_sk,
+            node_payment_vk=node_payment_vk,
         )
 
         # Initialize background tasks
