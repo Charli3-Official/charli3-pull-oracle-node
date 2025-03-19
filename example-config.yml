@@ -2,6 +2,7 @@ Updater:
   odv_fulfillment_inter: 60  # seconds
   verbosity: INFO
   percent_resolution: 10000
+  check_if_reward_calculation_fee_subsidized: true
 
 Node:
   mnemonic: cute emerge mixed expose spider can street mountain explain soup reopen wagon soldier account spot buddy cream evolve inherit alone pledge treat myth coil

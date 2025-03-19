@@ -5,6 +5,11 @@ from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
 from charli3_offchain_core.models.base import TxValidityInterval
 import charli3_offchain_core.oracle.aggregate.builder as odv_builder
+from charli3_offchain_core.oracle.exceptions import (
+    TransactionError,
+    RewardCalculationIsNotSubsidizedError,
+    NoPendingTransportUtxosFoundError,
+)
 from charli3_offchain_core.models.message import (
     OracleNodeMessage,
     SignedOracleNodeMessage,
@@ -52,6 +57,7 @@ class OdvService:
         node_payment_vk: PaymentVerificationKey,
         reward_token_hash: str | None = None,
         reward_token_name: str | None = None,
+        check_if_reward_calculation_fee_subsidized: bool = False,
     ):
         self.rate_aggregator = rate_aggregator
         self.chain_query = chain_query
@@ -60,10 +66,17 @@ class OdvService:
         self.oracle_curr = oracle_curr
         self.reward_token_hash = reward_token_hash
         self.reward_token_name = reward_token_name
+        self.check_if_reward_calculation_fee_subsidized = (
+            check_if_reward_calculation_fee_subsidized
+        )
         self.node_feed_sk = node_feed_sk
         self.node_feed_vk = node_feed_vk
         self.node_payment_sk = node_payment_sk
         self.node_payment_vk = node_payment_vk
+        self.network = self.chain_query.context.network
+        self.node_payment_addr = Address(
+            payment_part=self.node_payment_vk.hash(), network=self.network
+        )
         self.odv_tx_builder = odv_builder.OracleTransactionBuilder(
             tx_manager=self.tx_manager,
             script_address=Address.from_primitive(oracle_addr),
@@ -161,3 +174,32 @@ class OdvService:
         except (NodeServiceError, ValidationError, Exception) as e:
             logger.error(f"Aggregation sign request failed: {str(e)}")
             raise
+
+    async def attempt_reward_calculation(self, batch_size: int):
+        try:
+            res = await self.odv_tx_builder.build_rewards_tx(
+                signing_key=self.node_payment_sk,
+                change_address=self.node_payment_addr,
+                max_inputs=batch_size,
+                check_if_tx_fee_subsidized=self.check_if_reward_calculation_fee_subsidized,
+            )
+            status, _ = await self.tx_manager.sign_and_submit(
+                res.transaction,
+                [self.node_payment_sk],
+                wait_confirmation=True,
+            )
+            if status != "confirmed":
+                logger.warning(f"Rewards calculation transaction failed: {status}")
+            else:
+                logger.info(
+                    f"Rewards calculation transaction submitted: {res.transaction.id.payload.hex()}"
+                )
+
+        except NoPendingTransportUtxosFoundError as e:
+            logger.info(str(e))
+        except RewardCalculationIsNotSubsidizedError as e:
+            logger.warning(
+                f"Try submitting reward calculation without using subsidies: {e}"
+            )
+        except (TransactionError, ValidationError) as e:
+            logger.warning(f"Rewards calculation failed: {e}")

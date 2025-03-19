@@ -48,6 +48,7 @@ class UpdaterConfig:
 
     odv_fulfillment_inter: int
     verbosity: str = "INFO"
+    check_if_reward_calculation_fee_subsidized: bool = False
     percent_resolution: int = 10000
 
 
