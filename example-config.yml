@@ -1,7 +1,8 @@
 Updater:
-  odv_fulfillment_inter: 60  # seconds
   verbosity: INFO
-  percent_resolution: 10000
+  reward_calculation_dismissing_proximity: 43200 # seconds
+  reward_calculation_empty_utxo_threshold: 2
+  reward_calculation_batch_size: 2
   check_if_reward_calculation_fee_subsidized: true
 
 Node:
