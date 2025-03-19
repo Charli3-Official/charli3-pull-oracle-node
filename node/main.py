@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     try:
         # Startup
         logger.info("Starting ODV Oracle Node...")
-        config = app.state.config
+        config: AppConfig = app.state.config
 
         # Setup core services
         if not setup_dendrite_backend(config):
@@ -47,10 +47,13 @@ async def lifespan(app: FastAPI):
             chain_query=chain_query,
             tx_manager=tx_manager,
             oracle_addr=config.node.oracle_address,
+            oracle_curr=config.node.oracle_currency,
             node_feed_sk=node_feed_sk,
             node_feed_vk=node_feed_vk,
             node_payment_sk=node_payment_sk,
             node_payment_vk=node_payment_vk,
+            reward_token_hash=config.node.reward_token_hash,
+            reward_token_name=config.node.reward_token_name,
         )
 
         # Initialize background tasks

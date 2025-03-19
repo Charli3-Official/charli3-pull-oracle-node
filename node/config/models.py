@@ -7,12 +7,12 @@ class NodeConfig:
     """Node configuration."""
 
     mnemonic: str
-    oracle_curr: str
+    oracle_currency: str
     oracle_address: str
-    c3_token_hash: str
-    c3_token_name: str
     reward_collection_trigger: int
     reward_destination_address: str
+    reward_token_hash: str | None = None
+    reward_token_name: str | None = None
 
 
 @dataclass

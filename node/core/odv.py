@@ -4,6 +4,7 @@ from typing import Any
 from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
 from charli3_offchain_core.models.base import TxValidityInterval
+import charli3_offchain_core.oracle.aggregate.builder as odv_builder
 from charli3_offchain_core.models.message import (
     OracleNodeMessage,
     SignedOracleNodeMessage,
@@ -24,6 +25,9 @@ from pycardano import (
     VerificationKeyWitness,
     ExtendedSigningKey,
     VerificationKey,
+    Address,
+    ScriptHash,
+    AssetName,
 )
 
 from .aggregator import RateAggregator
@@ -41,19 +45,40 @@ class OdvService:
         chain_query: ChainQuery,
         tx_manager: TransactionManager,
         oracle_addr: str,
+        oracle_curr: str,
         node_feed_sk: ExtendedSigningKey,
         node_feed_vk: VerificationKey,
         node_payment_sk: PaymentExtendedSigningKey,
         node_payment_vk: PaymentVerificationKey,
+        reward_token_hash: str | None = None,
+        reward_token_name: str | None = None,
     ):
         self.rate_aggregator = rate_aggregator
         self.chain_query = chain_query
         self.tx_manager = tx_manager
         self.oracle_addr = oracle_addr
+        self.oracle_curr = oracle_curr
+        self.reward_token_hash = reward_token_hash
+        self.reward_token_name = reward_token_name
         self.node_feed_sk = node_feed_sk
         self.node_feed_vk = node_feed_vk
         self.node_payment_sk = node_payment_sk
         self.node_payment_vk = node_payment_vk
+        self.odv_tx_builder = odv_builder.OracleTransactionBuilder(
+            tx_manager=self.tx_manager,
+            script_address=Address.from_primitive(oracle_addr),
+            policy_id=ScriptHash.from_primitive(oracle_curr),
+            reward_token_hash=(
+                ScriptHash.from_primitive(reward_token_hash)
+                if reward_token_hash
+                else None
+            ),
+            reward_token_name=(
+                AssetName.from_primitive(reward_token_name)
+                if reward_token_name
+                else None
+            ),
+        )
 
     async def handle_feed_request(
         self, oracle_nft_policy_id: str, tx_validity_interval: TxValidityInterval
