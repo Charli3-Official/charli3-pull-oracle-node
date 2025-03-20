@@ -12,14 +12,15 @@ from charli3_dendrite.backend.ogmios_kupo import OgmiosKupoBackend
 from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
 from node.logfiles.logging_config import LEVEL_COLORS, get_log_config
+from pycardano.backend.kupo import KupoChainContextExtension
 from pycardano import (
     BlockFrostChainContext,
     ExtendedSigningKey,
     HDWallet,
-    KupoOgmiosV6ChainContext,
     Network,
     PaymentVerificationKey,
     VerificationKey,
+    OgmiosV6ChainContext,
 )
 
 from node.config.models import AppConfig
@@ -109,7 +110,7 @@ def setup_blockfrost_context(
 
 def setup_ogmios_context(
     config: AppConfig, network: Network
-) -> Optional[KupoOgmiosV6ChainContext]:
+) -> Optional[KupoChainContextExtension]:
     """
     Setup Ogmios chain context if configuration is provided.
 
@@ -118,7 +119,7 @@ def setup_ogmios_context(
         network (Network): Cardano network.
 
     Returns:
-        Optional[KupoOgmiosV6ChainContext]: Configured Ogmios context or None.
+        Optional[KupoChainContextExtension]: Configured Ogmios context or None.
     """
     ogmios_config = config.chain_query.ogmios
     if ogmios_config and ogmios_config["ws_url"]:
@@ -129,14 +130,18 @@ def setup_ogmios_context(
             logger.error("Invalid Ogmios WebSocket URL format")
             return None
 
-        return KupoOgmiosV6ChainContext(
+        ogmios_context = OgmiosV6ChainContext(
             host=ws_url,
             port=int(port),
             secure=False,
-            refetch_chain_tip_interval=None,
             network=network,
-            kupo_url=ogmios_config["kupo_url"],
+            refetch_chain_tip_interval=None,
         )
+        kupo_context = KupoChainContextExtension(
+            ogmios_context,
+            ogmios_config["kupo_url"],
+        )
+        return kupo_context
 
     return None
 
@@ -194,14 +199,21 @@ def load_keys(config: AppConfig) -> list:
     # using purpose 4343 (m / purpose' / coin_type' / account' / role / index)
     node_hdwallet = hdwallet.derive_from_path("m/4343'/1815'/0'/0/0")
     node_feed_sk = ExtendedSigningKey.from_hdwallet(node_hdwallet)
-    node_feed_vk = VerificationKey.from_primitive(node_hdwallet.public_key)
+    node_feed_vk: VerificationKey = VerificationKey.from_primitive(
+        node_hdwallet.public_key[:32]
+    )
+    logger.info(f"node feed vk cbor hex: {node_feed_vk.to_cbor_hex()}")
     node_feed_vkh = node_feed_vk.hash()
+    logger.info(f"node feed vkh: {node_feed_vkh.payload.hex()}")
 
     # Generate payment keys (for funds management)
     payment_hdwallet = hdwallet.derive_from_path("m/1852'/1815'/0'/0/0")
     node_payment_sk = ExtendedSigningKey.from_hdwallet(payment_hdwallet)
-    node_payment_vk = PaymentVerificationKey.from_primitive(payment_hdwallet.public_key)
+    node_payment_vk = PaymentVerificationKey.from_primitive(
+        payment_hdwallet.public_key[:32]
+    )
     node_payment_vkh = node_payment_vk.hash()
+    logger.info(f"node payment vkh: {node_payment_vkh.payload.hex()}")
 
     return [
         node_feed_sk,
