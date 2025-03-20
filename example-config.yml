@@ -1,5 +1,6 @@
 Updater:
   verbosity: INFO
+  reward_calculator_check_interval: 180 # seconds
   reward_calculation_dismissing_proximity: 43200 # seconds
   reward_calculation_empty_utxo_threshold: 2
   reward_calculation_batch_size: 2

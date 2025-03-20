@@ -17,18 +17,17 @@ async def periodic_reward_calculator(
     config: UpdaterConfig,
     odv_service: OdvService,
     lock_for_reward_calculator: asyncio.Lock,
-    reward_calculator_check_interval: float,  # seconds
 ) -> NoReturn:
     """
     Call reward calculation handler indefinitely.
     """
     logger.info(
-        f"Starting periodic_reward_calculator with time interval {reward_calculator_check_interval:.4f} seconds."
+        f"Starting periodic_reward_calculator with time interval {config.reward_calculator_check_interval:.4f} seconds."
     )
     time_elapsed = float(0)
 
     while True:
-        wait_time = max(reward_calculator_check_interval - time_elapsed, 0)
+        wait_time = max(config.reward_calculator_check_interval - time_elapsed, 0)
 
         time_elapsed = await run_reward_calculation_handler(
             config, odv_service, lock_for_reward_calculator, wait_time

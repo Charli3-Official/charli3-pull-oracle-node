@@ -1,12 +1,16 @@
 """ODV protocol endpoints."""
 
+import asyncio
 from api.dependencies import get_odv_service
 from api.schemas.requests import NodeAggregationSignRequest, NodeFeedRequest
 from api.schemas.responses import NodeAggregationSignResponse, NodeFeedResponse
 from core.errors import NodeServiceError
 from core.odv import OdvService
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import JSONResponse
+
+from node.background_tasks import run_reward_calculation_handler
+from node.config.models import AppConfig
 
 router = APIRouter()
 
@@ -37,14 +41,30 @@ async def get_feed(
 
 @router.post("/sign", response_model=NodeAggregationSignResponse)
 async def sign_aggregation(
-    request: NodeAggregationSignRequest,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    signature_request: NodeAggregationSignRequest,
     odv_service: OdvService = Depends(get_odv_service),
 ):
     """Handle ODV aggregation transaction signing."""
     try:
         tx_cbor = await odv_service.handle_aggregation_sign_request(
-            request.node_messages, request.tx_cbor
+            signature_request.node_messages, signature_request.tx_cbor
         )
+        app_config: AppConfig | None = request.state.app_config
+        assert app_config, "App config is not set up!"
+        lock_for_reward_calculator: asyncio.Lock | None = (
+            request.state.lock_for_reward_calculator
+        )
+        assert lock_for_reward_calculator, "Reward calculator lock is not set up!"
+
+        background_tasks.add_task(
+            run_reward_calculation_handler,
+            app_config.updater,
+            odv_service,
+            lock_for_reward_calculator,
+        )
+
         return NodeAggregationSignResponse(signed_tx_cbor=tx_cbor)
     except NodeServiceError as e:
         return JSONResponse(

@@ -8,10 +8,11 @@ from core.odv import OdvService
 _odv_service: Optional[OdvService] = None
 
 
-async def initialize_odv_service(**kwargs) -> None:
+async def initialize_odv_service(**kwargs) -> OdvService:
     """Initialize the ODV service singleton."""
     global _odv_service
     _odv_service = OdvService(**kwargs)
+    return _odv_service
 
 
 async def get_odv_service() -> OdvService:

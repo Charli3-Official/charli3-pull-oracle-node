@@ -18,6 +18,8 @@ from config.setup import (
 from core.aggregator import RateAggregator
 from fastapi import FastAPI
 
+from node.background_tasks import periodic_reward_calculator
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +44,7 @@ async def lifespan(app: FastAPI):
         chain_query, tx_manager = setup_chain_query_and_tx_manager(config)
 
         # Initialize ODV service
-        await initialize_odv_service(
+        odv_service = await initialize_odv_service(
             rate_aggregator=rate_aggregator,
             chain_query=chain_query,
             tx_manager=tx_manager,
@@ -58,15 +60,29 @@ async def lifespan(app: FastAPI):
 
         # Initialize background tasks
         lock_for_reward_calculator = asyncio.Lock()
+        loop = asyncio.get_event_loop()
+        reward_calculator_task = loop.create_task(
+            periodic_reward_calculator(
+                config.updater,
+                odv_service,
+                lock_for_reward_calculator,
+            )
+        )
 
         logger.info("ODV Oracle Node started successfully")
-        yield {"lock_for_reward_calculator": lock_for_reward_calculator}
+        yield {
+            "app_config": config,
+            "lock_for_reward_calculator": lock_for_reward_calculator,
+        }
 
     except Exception as e:
         logger.error(f"Startup failed: {e}")
         raise
     finally:
         logger.info("Shutting down ODV Oracle Node...")
+        # Cancel background tasks when main task stops
+        if reward_calculator_task is not None:
+            reward_calculator_task.cancel()
 
 
 def create_app(config: AppConfig) -> FastAPI:
