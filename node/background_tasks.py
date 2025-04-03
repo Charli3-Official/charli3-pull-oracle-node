@@ -19,7 +19,7 @@ async def periodic_reward_calculator(
     lock_for_reward_calculator: asyncio.Lock,
 ) -> NoReturn:
     """
-    Call reward calculation handler indefinitely.
+    Run reward calculation handler indefinitely.
     """
     logger.info(
         f"Starting periodic_reward_calculator with time interval {config.reward_calculator_check_interval:.4f} seconds."
@@ -40,6 +40,11 @@ async def run_reward_calculation_handler(
     lock_for_reward_calculator: asyncio.Lock,
     reward_calculation_delay: float | None = None,  # seconds
 ) -> float:
+    """
+    1. Wait some time interval (if any) to acquire the lock for handling the reward calculation;
+    2. Check and attempt reward calculation
+    3. Return elapsed time
+    """
     if reward_calculation_delay:
         await asyncio.sleep(reward_calculation_delay)
 
@@ -54,7 +59,12 @@ async def run_reward_calculation_handler(
 async def check_and_attempt_reward_calculation(
     config: UpdaterConfig,
     odv_service: OdvService,
-):
+) -> None:
+    """
+    Perform check of pending transport utxos and attempt reward calculation if needed:
+    1. If the reward dismissing is close enough in time (configured by reward_calculation_dismissing_proximity)
+    2. If there aren't enough empty transport utxos (configured by reward_calculation_empty_utxo_threshold)
+    """
     utxos = await common.get_script_utxos(
         odv_service.odv_tx_builder.script_address, odv_service.tx_manager
     )

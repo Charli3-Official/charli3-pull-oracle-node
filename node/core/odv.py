@@ -175,7 +175,15 @@ class OdvService:
             logger.error(f"Aggregation sign request failed: {str(e)}")
             raise
 
-    async def attempt_reward_calculation(self, batch_size: int):
+    async def attempt_reward_calculation(self, batch_size: int) -> None:
+        """
+        Build reward calculation tx and attempt submitting it,
+        if the process fails there could be cases when we can be sure that it's normal:
+        1. No pending transport utxos found
+        2. Reward calculation was not subsidized (for batch sizes more than one we can wait for second pending transport and try again)
+        3. Transaction submission error (can happen when e.g. utxo already consumed by other oracle node)
+        4. Validation error: conditions for reward calculation have not been yet met
+        """
         try:
             res = await self.odv_tx_builder.build_rewards_tx(
                 signing_key=self.node_payment_sk,
