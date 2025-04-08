@@ -14,7 +14,7 @@ Node:
   reward_destination_address: "addr_test1wqf99gagnjgfamek9v9vyrwulwh64xdnerq9xkvfhwyeu3qdufj2x"
   # leave reward_token_* fields empty for ada oracle rewards
   reward_token_hash: c9c4ada29e8640077a03ec2a6982f867f356ba1d7e25d19232372828
-  reward_token_name: TestC3
+  reward_token_name: "546573744333" # "TestC3" in hex
 
 Rate:
   general_base_symbol: STUFF-ADA
