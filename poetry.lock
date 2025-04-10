@@ -1987,8 +1987,8 @@ tabulate = "^0.9.0"
 [package.source]
 type = "git"
 url = "https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git"
-reference = "feature/node-bg-task-for-reward-calc"
-resolved_reference = "ddecd790b8fbfb37e3bc4d3796c6bfec5a640fd8"
+reference = "main"
+resolved_reference = "81777574f126c1818c68f09cab09214d60397e04"
 
 [[package]]
 name = "ogmios"
@@ -4038,4 +4038,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "df93c7eecefcdfe61ae85ec9aab06828c66bee6cefad8367215c9f42b711eecb"
+content-hash = "8dfc6da29c9de471fde9b9dbe008566638bfeaa2e5246d7b56c6e6a9b7422578"
