@@ -1,7 +1,10 @@
 version: '3.8'
 
+name: odv-multisig-charli3-node-operator-v1
+
 services:
   node1:
+    image: odv-multisig-charli3-node-operator-backend:latest
     build: .
     ports:
       - "8000:8000"
@@ -9,14 +12,18 @@ services:
       - ./config-1.yml:/app/config.yml
     environment:
       - PORT=8000
-    command: python node/main.py run -c config.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: python -m node.main run -c config.yml
 
   node2:
-    build: .
+    image: odv-multisig-charli3-node-operator-backend:latest
     ports:
       - "8001:8000"
     volumes:
       - ./config-2.yml:/app/config.yml
     environment:
       - PORT=8000
-    command: python node/main.py run -c config.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: python -m node.main run -c config.yml

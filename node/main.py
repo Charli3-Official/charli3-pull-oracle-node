@@ -6,17 +6,19 @@ from contextlib import asynccontextmanager
 
 import click
 import uvicorn
-from api.dependencies import initialize_odv_service
-from api.endpoints import odv
-from config.models import AppConfig
-from config.setup import (
+from node.api.dependencies import initialize_odv_service
+from node.api.endpoints import odv
+from node.config.models import AppConfig
+from node.config.setup import (
     load_config,
     load_keys,
     setup_chain_query_and_tx_manager,
     setup_dendrite_backend,
 )
-from core.aggregator import RateAggregator
+from node.core.aggregator import RateAggregator
 from fastapi import FastAPI
+
+from node.background_tasks import periodic_reward_calculator
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,7 @@ async def lifespan(app: FastAPI):
     try:
         # Startup
         logger.info("Starting ODV Oracle Node...")
-        config = app.state.config
+        config: AppConfig = app.state.config
 
         # Setup core services
         if not setup_dendrite_backend(config):
@@ -36,27 +38,51 @@ async def lifespan(app: FastAPI):
 
         # Initialize core components
         rate_aggregator = RateAggregator.from_config(config=config.rate)
-        node_sk, node_vk, _, _, _, _ = load_keys(config)
+        node_feed_sk, node_feed_vk, _, node_payment_sk, node_payment_vk, _ = load_keys(
+            config
+        )
         chain_query, tx_manager = setup_chain_query_and_tx_manager(config)
 
         # Initialize ODV service
-        await initialize_odv_service(
+        odv_service = await initialize_odv_service(
             rate_aggregator=rate_aggregator,
             chain_query=chain_query,
             tx_manager=tx_manager,
             oracle_addr=config.node.oracle_address,
-            node_sk=node_sk,
-            node_vk=node_vk,
+            oracle_curr=config.node.oracle_currency,
+            node_feed_sk=node_feed_sk,
+            node_feed_vk=node_feed_vk,
+            node_payment_sk=node_payment_sk,
+            node_payment_vk=node_payment_vk,
+            reward_token_hash=config.node.reward_token_hash,
+            reward_token_name=config.node.reward_token_name,
+        )
+
+        # Initialize background tasks
+        lock_for_reward_calculator = asyncio.Lock()
+        loop = asyncio.get_event_loop()
+        reward_calculator_task = loop.create_task(
+            periodic_reward_calculator(
+                config.updater,
+                odv_service,
+                lock_for_reward_calculator,
+            )
         )
 
         logger.info("ODV Oracle Node started successfully")
-        yield
+        yield {
+            "app_config": config,
+            "lock_for_reward_calculator": lock_for_reward_calculator,
+        }
 
     except Exception as e:
         logger.error(f"Startup failed: {e}")
         raise
     finally:
         logger.info("Shutting down ODV Oracle Node...")
+        # Cancel background tasks when main task stops
+        if reward_calculator_task is not None:
+            reward_calculator_task.cancel()
 
 
 def create_app(config: AppConfig) -> FastAPI:

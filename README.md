@@ -21,8 +21,23 @@ Next, you will need to create a config.yml file containing the necessary configu
 ### Locally
 
 To run the backend locally, execute the main.py script inside the Poetry environment:
+
 ```bash
 poetry run python node/main.py run -c config.yml
+```
+
+### Docker
+
+Build image and run two nodes using this command:
+
+```bash
+docker compose build node1 && docker compose up -d
+```
+
+Attach to one of the nodes:
+
+```bash
+docker compose logs -f node1
 ```
 
 ## Configuration

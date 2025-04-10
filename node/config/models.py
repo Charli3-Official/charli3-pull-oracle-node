@@ -7,12 +7,12 @@ class NodeConfig:
     """Node configuration."""
 
     mnemonic: str
-    oracle_curr: str
+    oracle_currency: str
     oracle_address: str
-    c3_token_hash: str
-    c3_token_name: str
     reward_collection_trigger: int
     reward_destination_address: str
+    reward_token_hash: str | None = None
+    reward_token_name: str | None = None
 
 
 @dataclass
@@ -46,9 +46,12 @@ class ChainQueryConfig:
 class UpdaterConfig:
     """Updater configuration."""
 
-    odv_fulfillment_inter: int
     verbosity: str = "INFO"
-    percent_resolution: int = 10000
+    reward_calculator_check_interval: float = 180  # seconds
+    reward_calculation_dismissing_proximity: int = 43200  # seconds
+    reward_calculation_empty_utxo_threshold: int = 2
+    reward_calculation_batch_size: int = 2
+    check_if_reward_calculation_fee_subsidized: bool = False
 
 
 @dataclass
