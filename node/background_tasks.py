@@ -5,7 +5,7 @@ import logging
 import time
 from typing import NoReturn
 
-from charli3_offchain_core.oracle.utils import common, state_checks, asset_checks
+from charli3_offchain_core.oracle.utils import asset_checks, common, state_checks
 
 from node.config.models import UpdaterConfig
 from node.core.odv import OdvService

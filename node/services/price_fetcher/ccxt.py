@@ -6,8 +6,8 @@ import time
 from typing import Optional, Union
 
 import ccxt.async_support as ccxt
-from node.config.models import SourceConfig
 
+from node.config.models import SourceConfig
 from node.services.price_fetcher.base import BaseAdapter, Rate
 
 logger = logging.getLogger(__name__)
