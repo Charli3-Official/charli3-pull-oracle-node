@@ -8,11 +8,12 @@ from typing import Optional
 
 import numpy as np
 
-from node.config.models import ExchangeSource, RateConfig
+from node.config.models import CacheConfig, ExchangeSource, RateConfig
 from node.services.price_fetcher.base import BaseAdapter, Rate
 from node.services.price_fetcher.ccxt import CCXTAdapter
 from node.services.price_fetcher.charli3_dendrite import Charli3DendriteAdapter
 from node.services.price_fetcher.generic_api import GenericAPIAdapter
+from node.utils.cache import ResponseCache
 
 logger = logging.getLogger(__name__)
 
@@ -22,16 +23,25 @@ class RateAggregator:
 
     def __init__(
         self,
+        base_symbol: str,
         quote_currency: bool = False,
         quote_symbol: Optional[str] = None,
         min_sources: int = 3,
+        cache_enabled: bool = True,
+        cache_ttl: int = 60,
     ):
         """Initialize rate aggregator."""
-        self.quote_currency = quote_currency
+        self.base_symbol = base_symbol
         self.quote_symbol = quote_symbol
+        self.quote_currency = quote_currency
         self.min_sources = min_sources
         self.base_adapters: list[BaseAdapter] = []
         self.quote_adapters: list[BaseAdapter] = []
+
+        # Cache Setup
+        self.cache_enabled = cache_enabled
+        self.cache_ttl = cache_ttl
+        self.cache = ResponseCache(ttl=cache_ttl) if cache_enabled else None
 
     def detect_outliers(self, rates: list[float]) -> tuple[list[float], list[float]]:
         """Detect outliers using the Interquartile Range (IQR) method."""
@@ -132,7 +142,7 @@ class RateAggregator:
         )
         return [rate for rates in rates_lists for rate in rates]
 
-    async def fetch_all_rates(self) -> tuple[Optional[float], list[Rate]]:
+    async def _fetch_all_rates(self) -> tuple[Optional[float], list[Rate]]:
         """Fetch and process all rates from configured adapters."""
         quote_rate = None
 
@@ -185,6 +195,15 @@ class RateAggregator:
             logger.error(f"Error in rate processing: {str(e)}")
             return None, []
 
+    async def fetch_aggregate_rates(self) -> tuple[Optional[float], list[Rate]]:
+        """Fetch and process all rates with optional caching."""
+        cache_key = self.get_asset_symbol()
+
+        if self.cache_enabled:
+            return await self.cache.get_or_update(cache_key, self._fetch_all_rates)
+
+        return await self._fetch_all_rates()
+
     def add_base_adapter(self, adapter: BaseAdapter) -> None:
         """Add a base rate adapter."""
         self.base_adapters.append(adapter)
@@ -195,10 +214,20 @@ class RateAggregator:
         self.quote_adapters.append(adapter)
         adapter.log_config()
 
+    def get_asset_symbol(self) -> str:
+        """return the final asset symbol using base and quote symbols."""
+        if self.quote_symbol or self.quote_currency:
+            base, intermediary = self.base_symbol.split("-")
+            quote_base, final_quote = self.quote_symbol.split("-")
+            if intermediary == quote_base:
+                return f"{base}-{final_quote}"
+        return self.base_symbol
+
     @classmethod
     def from_config(
         cls,
         config: RateConfig,
+        cache_config: Optional[CacheConfig] = None,
         min_sources: int = 1,
     ) -> "RateAggregator":
         """Create aggregator from configuration."""
@@ -210,8 +239,11 @@ class RateAggregator:
 
         aggregator = cls(
             quote_currency=bool(config.quote_currency),
+            base_symbol=config.general_base_symbol,
             quote_symbol=config.general_quote_symbol,
             min_sources=min_sources,
+            cache_enabled=cache_config.enabled,
+            cache_ttl=cache_config.ttl,
         )
 
         def initialize_adapter(exchange: ExchangeSource, is_base: bool):

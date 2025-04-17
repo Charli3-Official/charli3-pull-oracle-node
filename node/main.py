@@ -37,7 +37,9 @@ async def lifespan(app: FastAPI):
         await asyncio.sleep(1)
 
         # Initialize core components
-        rate_aggregator = RateAggregator.from_config(config=config.rate)
+        rate_aggregator = RateAggregator.from_config(
+            config=config.rate, cache_config=config.cache
+        )
         node_feed_sk, node_feed_vk, _, node_payment_sk, node_payment_vk, _ = load_keys(
             config
         )

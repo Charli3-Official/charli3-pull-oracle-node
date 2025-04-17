@@ -110,7 +110,7 @@ class OdvService:
             )
 
             # Get and process rate
-            rate, _ = await self.rate_aggregator.fetch_all_rates()
+            rate, _ = await self.rate_aggregator.fetch_aggregate_rates()
             if rate is None:
                 raise RateAggregationError("Failed to get aggregated rate for ODV feed")
 

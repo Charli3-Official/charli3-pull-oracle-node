@@ -6,6 +6,10 @@ Updater:
   reward_calculation_batch_size: 2
   check_if_reward_calculation_fee_subsidized: true
 
+Cache:
+  enabled: true
+  ttl: 60 # seconds
+
 Node:
   mnemonic: cute emerge mixed expose spider can street mountain explain soup reopen wagon soldier account spot buddy cream evolve inherit alone pledge treat myth coil
   oracle_currency: 899eaef62a0d76b4202ca4b6fa81f629e1ab6208f9299d155b093a42
