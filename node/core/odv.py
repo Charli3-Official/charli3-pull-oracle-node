@@ -1,18 +1,18 @@
 import logging
 from typing import Any
 
+import charli3_offchain_core.oracle.aggregate.builder as odv_builder
 from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
 from charli3_offchain_core.models.base import TxValidityInterval
-import charli3_offchain_core.oracle.aggregate.builder as odv_builder
-from charli3_offchain_core.oracle.exceptions import (
-    TransactionError,
-    RewardCalculationIsNotSubsidizedError,
-    NoPendingTransportUtxosFoundError,
-)
 from charli3_offchain_core.models.message import (
     OracleNodeMessage,
     SignedOracleNodeMessage,
+)
+from charli3_offchain_core.oracle.exceptions import (
+    NoPendingTransportUtxosFoundError,
+    RewardCalculationIsNotSubsidizedError,
+    TransactionError,
 )
 from charli3_offchain_core.oracle.validations.aggregation import (
     validate_is_node_registered,
@@ -23,16 +23,16 @@ from charli3_offchain_core.oracle.validations.aggregation import (
     validate_transaction_datums,
 )
 from pycardano import (
+    Address,
+    AssetName,
+    ExtendedSigningKey,
     PaymentExtendedSigningKey,
     PaymentVerificationKey,
+    ScriptHash,
     Transaction,
     TransactionWitnessSet,
-    VerificationKeyWitness,
-    ExtendedSigningKey,
     VerificationKey,
-    Address,
-    ScriptHash,
-    AssetName,
+    VerificationKeyWitness,
 )
 
 from node.core.aggregator import RateAggregator

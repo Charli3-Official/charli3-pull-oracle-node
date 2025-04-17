@@ -18,8 +18,8 @@ from charli3_dendrite import (
 )
 from charli3_dendrite.backend import get_backend
 from charli3_dendrite.dexs.amm.amm_base import AbstractPoolState
-from node.config.models import SourceConfig
 
+from node.config.models import SourceConfig
 from node.services.price_fetcher.base import BaseAdapter, Rate
 
 logger = logging.getLogger(__name__)

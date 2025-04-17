@@ -6,8 +6,11 @@ from contextlib import asynccontextmanager
 
 import click
 import uvicorn
+from fastapi import FastAPI
+
 from node.api.dependencies import initialize_odv_service
 from node.api.endpoints import odv
+from node.background_tasks import periodic_reward_calculator
 from node.config.models import AppConfig
 from node.config.setup import (
     load_config,
@@ -16,9 +19,6 @@ from node.config.setup import (
     setup_dendrite_backend,
 )
 from node.core.aggregator import RateAggregator
-from fastapi import FastAPI
-
-from node.background_tasks import periodic_reward_calculator
 
 logger = logging.getLogger(__name__)
 

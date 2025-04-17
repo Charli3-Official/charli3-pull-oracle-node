@@ -7,6 +7,7 @@ from statistics import median
 from typing import Optional
 
 import numpy as np
+
 from node.config.models import ExchangeSource, RateConfig
 from node.services.price_fetcher.base import BaseAdapter, Rate
 from node.services.price_fetcher.ccxt import CCXTAdapter
