@@ -65,29 +65,34 @@ async def check_and_attempt_reward_calculation(
     1. If the reward dismissing is close enough in time (configured by reward_calculation_dismissing_proximity)
     2. If there aren't enough empty transport utxos (configured by reward_calculation_empty_utxo_threshold)
     """
-    utxos = await common.get_script_utxos(
-        odv_service.odv_tx_builder.script_address, odv_service.tx_manager
-    )
-    transports = asset_checks.filter_utxos_by_token_name(
-        utxos, odv_service.odv_tx_builder.policy_id, "C3RT"
-    )
-    pending_transports = state_checks.filter_pending_transports(transports)
-    if not pending_transports:
-        return
+    try:
+        utxos = await common.get_script_utxos(
+            odv_service.odv_tx_builder.script_address, odv_service.tx_manager
+        )
+        transports = asset_checks.filter_utxos_by_token_name(
+            utxos, odv_service.odv_tx_builder.policy_id, "C3RT"
+        )
+        pending_transports = state_checks.filter_pending_transports(transports)
+        if not pending_transports:
+            return
 
-    empty_reward_transport_count = len(transports) - len(pending_transports)
-    current_time = int(time.time_ns() * 1e-6)
-    oldest_feed_timestamp: int = pending_transports[
-        0
-    ].output.datum.datum.aggregation.message.timestamp
-    if (
-        empty_reward_transport_count <= config.reward_calculation_empty_utxo_threshold
-        or current_time
-        >= (
-            oldest_feed_timestamp
-            + config.reward_calculation_dismissing_proximity * 1000
-        )
-    ):
-        await odv_service.attempt_reward_calculation(
-            config.reward_calculation_batch_size
-        )
+        empty_reward_transport_count = len(transports) - len(pending_transports)
+        current_time = int(time.time_ns() * 1e-6)
+        oldest_feed_timestamp: int = pending_transports[
+            0
+        ].output.datum.datum.aggregation.message.timestamp
+        if (
+            empty_reward_transport_count
+            <= config.reward_calculation_empty_utxo_threshold
+            or current_time
+            >= (
+                oldest_feed_timestamp
+                + config.reward_calculation_dismissing_proximity * 1000
+            )
+        ):
+            await odv_service.attempt_reward_calculation(
+                config.reward_calculation_batch_size
+            )
+
+    except Exception as e:
+        logger.error(f"Critical error on calculator background task process: {e}")
