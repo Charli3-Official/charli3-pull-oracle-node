@@ -1,0 +1,9 @@
+# PyPI dependencies
+locust>=2.35.0
+pytest>=8.3.5
+pytest-asyncio>=0.25.3
+PyYAML>=6.0
+
+# GitHub dependencies
+pycardano @ git+https://github.com/Charli3-Official/pycardano.git@odv-multisig
+odv-multisig-charli3-offchain-core @ git+https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git@main
