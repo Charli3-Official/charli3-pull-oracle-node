@@ -216,7 +216,7 @@ class RateAggregator:
 
     def get_asset_symbol(self) -> str:
         """return the final asset symbol using base and quote symbols."""
-        if self.quote_symbol or self.quote_currency:
+        if self.quote_symbol and self.quote_currency:
             base, intermediary = self.base_symbol.split("-")
             quote_base, final_quote = self.quote_symbol.split("-")
             if intermediary == quote_base:
