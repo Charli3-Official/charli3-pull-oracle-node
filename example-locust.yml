@@ -1,0 +1,14 @@
+ChainQuery:
+  network: TESTNET
+  ogmios:
+    ws_url: ws://ogmios-url:1337
+    kupo_url: http://kupo-url:1442
+
+  external:
+    ogmios:
+      ws_url: ws://ogmios-url:1337
+      kupo_url: http://kupo-url:1442
+
+odv_validity_length: 170000
+
+policy_id: "61db77391fd5878b0cf05f4eeb538442b220361caea42dce5cd1a40b"

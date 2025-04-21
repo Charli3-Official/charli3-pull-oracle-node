@@ -1,0 +1,14 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y git && apt-get clean
+
+COPY ./tests/performance /app/tests/performance
+COPY ./tests/requirements.txt /app/tests/requirements.txt
+
+RUN pip install -r /app/tests/requirements.txt
+
+ENV PYTHONPATH=/app
+
+CMD ["locust"]
