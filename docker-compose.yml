@@ -12,7 +12,6 @@ services:
       - PORT=8000
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: python -m node.main run -c config.yml
 
   node2:
     image: odv-multisig-charli3-node-operator-backend:latest
@@ -24,7 +23,6 @@ services:
       - PORT=8000
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: python -m node.main run -c config.yml
 
   locust:
     build:

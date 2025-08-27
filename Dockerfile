@@ -11,3 +11,5 @@ COPY pyproject.toml poetry.lock ./
 COPY node/ /app/node/
 
 RUN poetry install --no-interaction --no-ansi --no-root
+
+CMD ["python", "-m", "node.main", "run", "-c", "config.yml"]

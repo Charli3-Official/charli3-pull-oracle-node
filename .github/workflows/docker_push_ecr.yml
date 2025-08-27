@@ -1,0 +1,58 @@
+name: Build and push Docker Image to GHCR
+
+on:
+  push:
+    branches:
+      - develop
+  release:
+    types: [published]
+    branches:
+      - main
+      
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      packages: 'write'
+      id-token: 'write'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Authenticate with GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build, tag, and push Docker image to GHCR
+      if: github.event_name == 'release'
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/charli3-official/odv-multisig-charli3-node-operator-backend:${{ github.ref_name }}
+          ghcr.io/charli3-official/odv-multisig-charli3-node-operator-backend:latest
+    - name: Update GHCR description
+      if: github.event_name == 'release'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        RELEASE_DESCRIPTION=$(curl -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/charli3-official/odv-multisig-charli3-node-operator-backend/releases/latest | jq -r .body)
+        ESCAPED_DESCRIPTION=$(echo "$RELEASE_DESCRIPTION" | sed 's/"/\\"/g')
+        curl -X PATCH \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/user/packages/container/charli3-official/odv-multisig-charli3-node-operator-backend/versions/${{ github.ref_name }} \
+          -d "{\"description\":\"$ESCAPED_DESCRIPTION\"}"
+    - name: Build, tag as develop, and push Docker image to GHCR
+      if: github.ref == 'refs/heads/develop'
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        tags: ghcr.io/charli3-official/odv-multisig-charli3-node-operator-backend:develop
