@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from node.api.dependencies import initialize_odv_service
-from node.api.endpoints import odv
+from node.api.endpoints import health, odv
 from node.background_tasks import periodic_reward_calculator
 from node.config.models import AppConfig
 from node.config.setup import (
@@ -101,6 +101,7 @@ def create_app(config: AppConfig) -> FastAPI:
 
     # Register routers
     app.include_router(odv.router, prefix="/odv", tags=["odv"])
+    app.include_router(health.router, tags=["health"])
 
     return app
 
