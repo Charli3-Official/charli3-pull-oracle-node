@@ -13,10 +13,12 @@ from node.api.endpoints import health, odv
 from node.background_tasks import periodic_reward_calculator
 from node.config.models import AppConfig
 from node.config.setup import (
+    initialize_node_sync,
     load_config,
     load_keys,
     setup_chain_query_and_tx_manager,
     setup_dendrite_backend,
+    setup_node_sync,
 )
 from node.core.aggregator import RateAggregator
 
@@ -40,10 +42,13 @@ async def lifespan(app: FastAPI):
         rate_aggregator = RateAggregator.from_config(
             config=config.rate, cache_config=config.cache
         )
-        node_feed_sk, node_feed_vk, _, node_payment_sk, node_payment_vk, _ = load_keys(
-            config
-        )
+
+        node_keys = load_keys(config)
+        node_feed_sk, node_feed_vk, _, node_payment_sk, node_payment_vk, _ = node_keys
+
         chain_query, tx_manager = setup_chain_query_and_tx_manager(config)
+
+        node_sync_api = setup_node_sync(config, node_keys)
 
         # Initialize ODV service
         odv_service = await initialize_odv_service(
@@ -59,6 +64,12 @@ async def lifespan(app: FastAPI):
             reward_token_hash=config.node.reward_token_hash,
             reward_token_name=config.node.reward_token_name,
         )
+
+        if node_sync_api:
+            odv_service.node_sync_api = node_sync_api
+
+        # Initialize NodeSync (report initialization)
+        await initialize_node_sync(config, node_keys, node_sync_api)
 
         # Initialize background tasks
         lock_for_reward_calculator = asyncio.Lock()

@@ -10,6 +10,6 @@ class NodeFeedResponse(BaseModel):
 
 
 class NodeAggregationSignResponse(BaseModel):
-    """Response containing signed transaction"""
+    """Response containing signature"""
 
-    signed_tx_cbor: str = Field(..., description="Signed transaction CBOR hex")
+    signature: str = Field(..., description="Transaction signature hex")

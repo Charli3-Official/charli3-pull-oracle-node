@@ -160,6 +160,13 @@ class CacheConfig:
 
 
 @dataclass
+class NodeSyncConfig:
+    """NodeSync configuration."""
+
+    api_url: Optional[str] = None
+
+
+@dataclass
 class AppConfig:
     """Complete application configuration."""
 
@@ -168,6 +175,7 @@ class AppConfig:
     updater: UpdaterConfig
     chain_query: ChainQueryConfig
     cache: CacheConfig = field(default_factory=lambda: CacheConfig())
+    node_sync: Optional[NodeSyncConfig] = None
 
     @classmethod
     def from_dict(cls, config: dict[str, Any]) -> "AppConfig":
@@ -178,4 +186,9 @@ class AppConfig:
             updater=UpdaterConfig(**config.get("Updater", {})),
             chain_query=ChainQueryConfig(**config.get("ChainQuery", {})),
             cache=CacheConfig(**config.get("Cache", {}) if config.get("Cache") else {}),
+            node_sync=(
+                NodeSyncConfig(**config.get("NodeSync", {}))
+                if config.get("NodeSync")
+                else None
+            ),
         )

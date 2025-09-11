@@ -49,8 +49,8 @@ async def sign_aggregation(
 ):
     """Handle ODV aggregation transaction signing."""
     try:
-        tx_cbor = await odv_service.handle_aggregation_sign_request(
-            signature_request.node_messages, signature_request.tx_cbor
+        signature_hex = await odv_service.handle_aggregation_sign_request(
+            signature_request.node_messages, signature_request.tx_body_cbor
         )
         app_config: AppConfig | None = request.state.app_config
         assert app_config, "App config is not set up!"
@@ -66,7 +66,7 @@ async def sign_aggregation(
             lock_for_reward_calculator,
         )
 
-        return NodeAggregationSignResponse(signed_tx_cbor=tx_cbor)
+        return NodeAggregationSignResponse(signature=signature_hex)
     except NodeServiceError as e:
         return JSONResponse(
             status_code=e.status_code,
