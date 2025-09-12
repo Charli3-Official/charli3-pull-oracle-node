@@ -22,6 +22,7 @@ from pycardano import (
 )
 from pycardano.backend.kupo import KupoChainContextExtension
 
+from node.api.node_sync_api import NodeSyncApi
 from node.config.models import AppConfig
 from node.logfiles.logging_config import LEVEL_COLORS, get_log_config
 
@@ -264,6 +265,20 @@ def load_config(config_path: str) -> AppConfig:
     except Exception as e:
         logger.error(f"Failed to load config: {e}")
         raise click.ClickException(str(e))
+
+
+def setup_node_sync(config, node_keys) -> Optional[NodeSyncApi]:
+    """Setup NodeSync API if configured."""
+    if config.node_sync and config.node_sync.api_url:
+        node_sync_api = NodeSyncApi(config.node_sync.api_url)
+        return node_sync_api
+    return None
+
+
+async def initialize_node_sync(config, node_keys, node_sync_api):
+    """Initialize NodeSync by reporting initialization data."""
+    if node_sync_api:
+        await node_sync_api.report_initialization(config, node_keys)
 
 
 def welcome_message():

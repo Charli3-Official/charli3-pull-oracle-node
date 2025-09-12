@@ -26,4 +26,4 @@ class NodeAggregationSignRequest(BaseModel):
     node_messages: dict[str, NodeMessage] = Field(
         ..., description="Participating node messages"
     )
-    tx_cbor: str = Field(..., description="Transaction CBOR hex")
+    tx_body_cbor: str = Field(..., description="Transaction Body CBOR hex")

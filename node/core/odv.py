@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from typing import Any
 
@@ -30,9 +31,9 @@ from pycardano import (
     PaymentVerificationKey,
     ScriptHash,
     Transaction,
+    TransactionBody,
     TransactionWitnessSet,
     VerificationKey,
-    VerificationKeyWitness,
 )
 
 from node.core.aggregator import RateAggregator
@@ -136,42 +137,70 @@ class OdvService:
             raise
 
     async def handle_aggregation_sign_request(
-        self, node_values: dict[str, Any], tx_cbor: str
+        self, node_values: dict[str, Any], tx_body_cbor_hex: str
     ) -> str:
         """Handle ODV aggregation transaction signing."""
         try:
-            tx = Transaction.from_cbor(tx_cbor)
+            logger.info(
+                f"Received transaction body CBOR length: {len(tx_body_cbor_hex)}"
+            )
+
+            tx_body_cbor_bytes = bytes.fromhex(tx_body_cbor_hex)
+            tx_body_hash_bytes = hashlib.blake2b(
+                tx_body_cbor_bytes, digest_size=32
+            ).digest()
+            tx_body_hash_hex = tx_body_hash_bytes.hex()
+
+            logger.info(f"Computed transaction body hash: {tx_body_hash_hex}")
+
+            # Deserialize transaction body for validation purposes only
+            parsed_tx_body = TransactionBody.from_cbor(tx_body_cbor_hex)
+
+            validation_tx = Transaction(
+                transaction_body=parsed_tx_body,
+                transaction_witness_set=TransactionWitnessSet(),
+            )
 
             # Validates the node message signatures
-            node_messages = validate_node_message_signatures(
+            validated_node_messages = validate_node_message_signatures(
                 [msg.model_dump() for msg in node_values.values()]
             )
-            # Validates that all messages have the same policy_id
-            validate_policy_id_in_messages(node_messages)
+
+            # Validate policy ID consistency
+            validate_policy_id_in_messages(validated_node_messages)
 
             # Validates and returns the reward and agg transport datums
             reward_transport_datum, _ = validate_transaction_datums(
-                tx, self.oracle_addr
+                validation_tx, self.oracle_addr
             )
 
             # Validates that the node updates and aggregation median are correct
-            if validate_node_updates_and_aggregation_median(
-                node_messages, reward_transport_datum.datum
-            ):
-                witness = VerificationKeyWitness(
-                    vkey=self.node_feed_vk,
-                    signature=self.node_feed_sk.sign(tx.transaction_body.hash()),
-                )
-                tx.transaction_witness_set = (
-                    tx.transaction_witness_set or TransactionWitnessSet()
-                )
-                tx.transaction_witness_set.vkey_witnesses.append(witness)
+            median_validation_passed = validate_node_updates_and_aggregation_median(
+                validated_node_messages, reward_transport_datum.datum
+            )
 
-                return tx.to_cbor_hex()
-            else:
-                raise
+            if not median_validation_passed:
+                raise ValidationError(
+                    "Node updates and aggregation median validation failed"
+                )
 
-        except (NodeServiceError, ValidationError, Exception) as e:
+            logger.info("All validations passed successfully")
+
+            # Sign the transaction body hash
+            signature_bytes = self.node_feed_sk.sign(tx_body_hash_bytes)
+            signature_hex = signature_bytes.hex()
+
+            logger.info(
+                f"Transaction signed successfully, signature length: {len(signature_hex)}"
+            )
+
+            return signature_hex
+
+        except Exception as e:
+            logger.error(f"Aggregation sign request failed: {str(e)}")
+            raise
+
+        except Exception as e:
             logger.error(f"Aggregation sign request failed: {str(e)}")
             raise
 

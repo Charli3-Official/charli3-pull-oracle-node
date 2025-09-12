@@ -6,8 +6,6 @@ on:
       - develop
   release:
     types: [published]
-    branches:
-      - main
 
 jobs:
   build-and-push:
@@ -34,7 +32,7 @@ jobs:
         push: true
         tags: |
           ghcr.io/charli3-official/odv-multisig-charli3-node-operator-backend:${{ github.ref_name }}
-          ghcr.io/charli3-official/odv-multisig-charli3-node-operator-backend:latest
+          ${{ !contains(github.ref_name, '-') && 'ghcr.io/charli3-official/odv-multisig-charli3-node-operator-backend:latest' || '' }}
     - name: Update GHCR description
       if: github.event_name == 'release'
       env:
