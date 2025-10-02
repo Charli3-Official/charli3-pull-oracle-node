@@ -9,10 +9,17 @@ class NodeConfig:
     mnemonic: str
     oracle_currency: str
     oracle_address: str
-    reward_collection_trigger: int
-    reward_destination_address: str
     reward_token_hash: str | None = None
     reward_token_name: str | None = None
+
+
+@dataclass
+class RewardCollectionConfig:
+    """Reward collection configuration."""
+
+    trigger_amount: int
+    reward_destination_address: str  # "base", "enterprise", or custom address
+    create_collateral: bool = True
 
 
 @dataclass
@@ -48,6 +55,7 @@ class UpdaterConfig:
 
     verbosity: str = "INFO"
     reward_calculator_check_interval: float = 180  # seconds
+    reward_collect_check_interval: float = 60  # seconds
     reward_calculation_dismissing_proximity: int = 43200  # seconds
     reward_calculation_empty_utxo_threshold: int = 2
     reward_calculation_batch_size: int = 2
@@ -174,6 +182,7 @@ class AppConfig:
     rate: RateConfig
     updater: UpdaterConfig
     chain_query: ChainQueryConfig
+    reward_collection: RewardCollectionConfig
     cache: CacheConfig = field(default_factory=lambda: CacheConfig())
     node_sync: Optional[NodeSyncConfig] = None
 
@@ -185,6 +194,9 @@ class AppConfig:
             rate=RateConfig.from_dict(config.get("Rate", {})),
             updater=UpdaterConfig(**config.get("Updater", {})),
             chain_query=ChainQueryConfig(**config.get("ChainQuery", {})),
+            reward_collection=RewardCollectionConfig(
+                **config.get("RewardCollection", {})
+            ),
             cache=CacheConfig(**config.get("Cache", {}) if config.get("Cache") else {}),
             node_sync=(
                 NodeSyncConfig(**config.get("NodeSync", {}))
