@@ -5,16 +5,19 @@ from typing import Any
 import charli3_offchain_core.oracle.aggregate.builder as odv_builder
 from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
+from charli3_offchain_core.cli.base import LoadedKeys
 from charli3_offchain_core.models.base import TxValidityInterval
 from charli3_offchain_core.models.message import (
     OracleNodeMessage,
     SignedOracleNodeMessage,
 )
+from charli3_offchain_core.models.oracle_datums import NoDatum, SomeAsset
 from charli3_offchain_core.oracle.exceptions import (
     NoPendingTransportUtxosFoundError,
     RewardCalculationIsNotSubsidizedError,
     TransactionError,
 )
+from charli3_offchain_core.oracle.rewards.node_collect_builder import NodeCollectBuilder
 from charli3_offchain_core.oracle.validations.aggregation import (
     validate_is_node_registered,
     validate_node_message_signatures,
@@ -38,6 +41,7 @@ from pycardano import (
 
 from node.core.aggregator import RateAggregator
 from node.core.errors import NodeServiceError, RateAggregationError, ValidationError
+from node.services.cli_automation import create_reward_collection_automation
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +62,8 @@ class OdvService:
         node_payment_vk: PaymentVerificationKey,
         reward_token_hash: str | None = None,
         reward_token_name: str | None = None,
+        reward_destination_address: str | None = None,
+        create_collateral: bool = True,
         check_if_reward_calculation_fee_subsidized: bool = False,
     ):
         self.rate_aggregator = rate_aggregator
@@ -67,6 +73,8 @@ class OdvService:
         self.oracle_curr = oracle_curr
         self.reward_token_hash = reward_token_hash
         self.reward_token_name = reward_token_name
+        self.reward_destination_address = reward_destination_address
+        self.create_collateral = create_collateral
         self.check_if_reward_calculation_fee_subsidized = (
             check_if_reward_calculation_fee_subsidized
         )
@@ -78,20 +86,22 @@ class OdvService:
         self.node_payment_addr = Address(
             payment_part=self.node_payment_vk.hash(), network=self.network
         )
+
+        self.oracle_script_address = Address.from_primitive(oracle_addr)
+        self.oracle_policy_id = ScriptHash.from_primitive(oracle_curr)
+        self.reward_token_policy_hash = (
+            ScriptHash.from_primitive(reward_token_hash) if reward_token_hash else None
+        )
+        self.reward_token_asset_name = (
+            AssetName.from_primitive(reward_token_name) if reward_token_name else None
+        )
+
         self.odv_tx_builder = odv_builder.OracleTransactionBuilder(
             tx_manager=self.tx_manager,
-            script_address=Address.from_primitive(oracle_addr),
-            policy_id=ScriptHash.from_primitive(oracle_curr),
-            reward_token_hash=(
-                ScriptHash.from_primitive(reward_token_hash)
-                if reward_token_hash
-                else None
-            ),
-            reward_token_name=(
-                AssetName.from_primitive(reward_token_name)
-                if reward_token_name
-                else None
-            ),
+            script_address=self.oracle_script_address,
+            policy_id=self.oracle_policy_id,
+            reward_token_hash=self.reward_token_policy_hash,
+            reward_token_name=self.reward_token_asset_name,
         )
 
     async def handle_feed_request(
@@ -240,3 +250,78 @@ class OdvService:
             )
         except (TransactionError, ValidationError) as e:
             logger.warning(f"Rewards calculation failed: {e}")
+
+    async def attempt_node_collect(self, contract_utxos: list | None = None) -> None:
+        """
+        Build node collect tx and attempt submitting it,
+        if the process fails there could be cases when we can be sure that it's normal:
+        1. No rewards available for the node
+        2. Transaction submission error (can happen when e.g. utxo already consumed by other node)
+        3. Validation error: conditions for node collect have not been yet met
+        """
+        try:
+            if contract_utxos is None:
+                return
+
+            loaded_keys = LoadedKeys(
+                payment_sk=self.node_payment_sk,
+                payment_vk=self.node_payment_vk,
+                stake_vk=self.node_payment_vk,
+                address=self.node_payment_addr,
+            )
+
+            # Create NodeCollectBuilder and build the transaction
+            node_collect_builder = NodeCollectBuilder(self.chain_query, self.tx_manager)
+
+            # Use automated prompts if configured
+            if self.reward_destination_address:
+                # Create automation service for reward collection
+                automation_service = create_reward_collection_automation(
+                    create_collateral=self.create_collateral,
+                    reward_destination=self.reward_destination_address,
+                )
+
+                with automation_service.automate_prompts():
+                    result = await node_collect_builder.build_tx(
+                        policy_hash=self.oracle_policy_id,
+                        contract_utxos=contract_utxos,
+                        reward_token=(
+                            SomeAsset(
+                                policy_id=self.reward_token_policy_hash,
+                                asset_name=self.reward_token_asset_name,
+                            )
+                            if self.reward_token_policy_hash
+                            and self.reward_token_asset_name
+                            else NoDatum()
+                        ),
+                        loaded_key=loaded_keys,
+                        network=self.network,
+                        required_signers=[self.node_payment_vk.hash()],
+                    )
+
+                # Check if transaction was built successfully
+                if result.exception_type is not None:
+                    logger.warning(
+                        f"Node collect transaction build failed: {result.exception_type}"
+                    )
+                    return
+
+                if result.transaction is None:
+                    logger.warning(
+                        "Node collect transaction build returned no transaction"
+                    )
+                    return
+
+                # Submit the transaction
+                status, _ = await self.tx_manager.sign_and_submit(
+                    result.transaction, [self.node_payment_sk], wait_confirmation=True
+                )
+                if status != "confirmed":
+                    logger.warning(f"Node collect transaction failed: {status}")
+                else:
+                    logger.info(
+                        f"Node collect transaction submitted: {result.transaction.id.payload.hex()}"
+                    )
+
+        except Exception as e:
+            logger.warning(f"Node collect failed: {e}")

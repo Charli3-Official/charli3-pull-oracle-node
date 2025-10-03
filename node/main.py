@@ -10,7 +10,7 @@ from fastapi import FastAPI
 
 from node.api.dependencies import initialize_odv_service
 from node.api.endpoints import health, odv
-from node.background_tasks import periodic_reward_calculator
+from node.background_tasks import periodic_node_collect, periodic_reward_calculator
 from node.config.models import AppConfig
 from node.config.setup import (
     initialize_node_sync,
@@ -63,6 +63,8 @@ async def lifespan(app: FastAPI):
             node_payment_vk=node_payment_vk,
             reward_token_hash=config.node.reward_token_hash,
             reward_token_name=config.node.reward_token_name,
+            reward_destination_address=config.reward_collection.reward_destination_address,
+            create_collateral=config.reward_collection.create_collateral,
         )
 
         if node_sync_api:
@@ -73,6 +75,7 @@ async def lifespan(app: FastAPI):
 
         # Initialize background tasks
         lock_for_reward_calculator = asyncio.Lock()
+        lock_for_node_collect = asyncio.Lock()
         loop = asyncio.get_event_loop()
         reward_calculator_task = loop.create_task(
             periodic_reward_calculator(
@@ -81,11 +84,19 @@ async def lifespan(app: FastAPI):
                 lock_for_reward_calculator,
             )
         )
+        node_collect_task = loop.create_task(
+            periodic_node_collect(
+                config,
+                odv_service,
+                lock_for_node_collect,
+            )
+        )
 
         logger.info("ODV Oracle Node started successfully")
         yield {
             "app_config": config,
             "lock_for_reward_calculator": lock_for_reward_calculator,
+            "lock_for_node_collect": lock_for_node_collect,
         }
 
     except Exception as e:
@@ -96,6 +107,8 @@ async def lifespan(app: FastAPI):
         # Cancel background tasks when main task stops
         if reward_calculator_task is not None:
             reward_calculator_task.cancel()
+        if node_collect_task is not None:
+            node_collect_task.cancel()
 
 
 def create_app(config: AppConfig) -> FastAPI:
