@@ -1,15 +1,11 @@
 """ODV protocol endpoints."""
 
-import asyncio
-
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from node.api.dependencies import get_odv_service
 from node.api.schemas.requests import NodeAggregationSignRequest, NodeFeedRequest
 from node.api.schemas.responses import NodeAggregationSignResponse, NodeFeedResponse
-from node.background_tasks import run_reward_calculation_handler
-from node.config.models import AppConfig
 from node.core.errors import NodeServiceError
 from node.core.odv import OdvService
 
@@ -42,7 +38,6 @@ async def get_feed(
 
 @router.post("/sign", response_model=NodeAggregationSignResponse)
 async def sign_aggregation(
-    background_tasks: BackgroundTasks,
     request: Request,
     signature_request: NodeAggregationSignRequest,
     odv_service: OdvService = Depends(get_odv_service),
@@ -51,19 +46,6 @@ async def sign_aggregation(
     try:
         signature_hex = await odv_service.handle_aggregation_sign_request(
             signature_request.node_messages, signature_request.tx_body_cbor
-        )
-        app_config: AppConfig | None = request.state.app_config
-        assert app_config, "App config is not set up!"
-        lock_for_reward_calculator: asyncio.Lock | None = (
-            request.state.lock_for_reward_calculator
-        )
-        assert lock_for_reward_calculator, "Reward calculator lock is not set up!"
-
-        background_tasks.add_task(
-            run_reward_calculation_handler,
-            app_config.updater,
-            odv_service,
-            lock_for_reward_calculator,
         )
 
         return NodeAggregationSignResponse(signature=signature_hex)

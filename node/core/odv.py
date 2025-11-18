@@ -13,8 +13,15 @@ from charli3_offchain_core.models.message import (
 )
 from charli3_offchain_core.models.oracle_datums import NoDatum, SomeAsset
 from charli3_offchain_core.oracle.exceptions import (
+    AggregationError,
+    DataError,
+    NFTError,
+    NodeValidationError,
     NoPendingTransportUtxosFoundError,
     RewardCalculationIsNotSubsidizedError,
+    SignatureError,
+    StateValidationError,
+    TimestampError,
     TransactionError,
 )
 from charli3_offchain_core.oracle.rewards.node_collect_builder import NodeCollectBuilder
@@ -151,17 +158,12 @@ class OdvService:
     ) -> str:
         """Handle ODV aggregation transaction signing."""
         try:
-            logger.info(
-                f"Received transaction body CBOR length: {len(tx_body_cbor_hex)}"
-            )
 
             tx_body_cbor_bytes = bytes.fromhex(tx_body_cbor_hex)
             tx_body_hash_bytes = hashlib.blake2b(
                 tx_body_cbor_bytes, digest_size=32
             ).digest()
-            tx_body_hash_hex = tx_body_hash_bytes.hex()
-
-            logger.info(f"Computed transaction body hash: {tx_body_hash_hex}")
+            # tx_body_hash_hex = tx_body_hash_bytes.hex()
 
             # Deserialize transaction body for validation purposes only
             parsed_tx_body = TransactionBody.from_cbor(tx_body_cbor_hex)
@@ -179,14 +181,14 @@ class OdvService:
             # Validate policy ID consistency
             validate_policy_id_in_messages(validated_node_messages)
 
-            # Validates and returns the reward and agg transport datums
-            reward_transport_datum, _ = validate_transaction_datums(
+            # Validate and extract required datums from the transaction.
+            reward_account_datum, agg_state_datum = validate_transaction_datums(
                 validation_tx, self.oracle_addr
             )
 
-            # Validates that the node updates and aggregation median are correct
+            # Validate median using AggState datum
             median_validation_passed = validate_node_updates_and_aggregation_median(
-                validated_node_messages, reward_transport_datum.datum
+                validated_node_messages, agg_state_datum
             )
 
             if not median_validation_passed:
@@ -201,15 +203,22 @@ class OdvService:
             signature_hex = signature_bytes.hex()
 
             logger.info(
-                f"Transaction signed successfully, signature length: {len(signature_hex)}"
+                f"Transaction signed successfully with signature: {signature_hex}"
             )
 
             return signature_hex
 
-        except Exception as e:
-            logger.error(f"Aggregation sign request failed: {str(e)}")
-            raise
-
+        except (
+            SignatureError,
+            NFTError,
+            DataError,
+            AggregationError,
+            NodeValidationError,
+            StateValidationError,
+            TimestampError,
+        ) as e:
+            logger.warning(f"Validation failed during aggregation signing: {e}")
+            raise ValidationError(str(e)) from e
         except Exception as e:
             logger.error(f"Aggregation sign request failed: {str(e)}")
             raise

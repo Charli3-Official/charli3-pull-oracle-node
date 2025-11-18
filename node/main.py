@@ -10,7 +10,7 @@ from fastapi import FastAPI
 
 from node.api.dependencies import initialize_odv_service
 from node.api.endpoints import health, odv
-from node.background_tasks import periodic_node_collect, periodic_reward_calculator
+from node.background_tasks import periodic_node_collect
 from node.config.models import AppConfig
 from node.config.setup import (
     initialize_node_sync,
@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle events."""
+    node_collect_task = None
+
     try:
         # Startup
         logger.info("Starting ODV Oracle Node...")
@@ -72,18 +74,9 @@ async def lifespan(app: FastAPI):
 
         # Initialize NodeSync (report initialization)
         await initialize_node_sync(config, node_keys, node_sync_api)
-
         # Initialize background tasks
-        lock_for_reward_calculator = asyncio.Lock()
         lock_for_node_collect = asyncio.Lock()
         loop = asyncio.get_event_loop()
-        reward_calculator_task = loop.create_task(
-            periodic_reward_calculator(
-                config.updater,
-                odv_service,
-                lock_for_reward_calculator,
-            )
-        )
         node_collect_task = loop.create_task(
             periodic_node_collect(
                 config,
@@ -95,7 +88,6 @@ async def lifespan(app: FastAPI):
         logger.info("ODV Oracle Node started successfully")
         yield {
             "app_config": config,
-            "lock_for_reward_calculator": lock_for_reward_calculator,
             "lock_for_node_collect": lock_for_node_collect,
         }
 
@@ -105,10 +97,11 @@ async def lifespan(app: FastAPI):
     finally:
         logger.info("Shutting down ODV Oracle Node...")
         # Cancel background tasks when main task stops
-        if reward_calculator_task is not None:
-            reward_calculator_task.cancel()
         if node_collect_task is not None:
-            node_collect_task.cancel()
+            try:
+                node_collect_task.cancel()
+            except Exception:
+                logger.debug("Failed to cancel node_collect_task", exc_info=True)
 
 
 def create_app(config: AppConfig) -> FastAPI:
