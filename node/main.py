@@ -46,7 +46,14 @@ async def lifespan(app: FastAPI):
         )
 
         node_keys = load_keys(config)
-        node_feed_sk, node_feed_vk, _, node_payment_sk, node_payment_vk, _ = node_keys
+        (
+            node_feed_sk,
+            node_feed_vk,
+            node_feed_vkh,
+            node_payment_sk,
+            node_payment_vk,
+            _,
+        ) = node_keys
 
         chain_query, tx_manager = setup_chain_query_and_tx_manager(config)
 
@@ -61,6 +68,7 @@ async def lifespan(app: FastAPI):
             oracle_curr=config.node.oracle_currency,
             node_feed_sk=node_feed_sk,
             node_feed_vk=node_feed_vk,
+            node_feed_vkh=node_feed_vkh,
             node_payment_sk=node_payment_sk,
             node_payment_vk=node_payment_vk,
             reward_token_hash=config.node.reward_token_hash,

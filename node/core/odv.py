@@ -17,12 +17,9 @@ from charli3_offchain_core.oracle.exceptions import (
     DataError,
     NFTError,
     NodeValidationError,
-    NoPendingTransportUtxosFoundError,
-    RewardCalculationIsNotSubsidizedError,
     SignatureError,
     StateValidationError,
     TimestampError,
-    TransactionError,
 )
 from charli3_offchain_core.oracle.rewards.node_collect_builder import NodeCollectBuilder
 from charli3_offchain_core.oracle.validations.aggregation import (
@@ -44,6 +41,7 @@ from pycardano import (
     TransactionBody,
     TransactionWitnessSet,
     VerificationKey,
+    VerificationKeyHash,
 )
 
 from node.core.aggregator import RateAggregator
@@ -65,6 +63,7 @@ class OdvService:
         oracle_curr: str,
         node_feed_sk: ExtendedSigningKey,
         node_feed_vk: VerificationKey,
+        node_feed_vkh: VerificationKeyHash,
         node_payment_sk: PaymentExtendedSigningKey,
         node_payment_vk: PaymentVerificationKey,
         reward_token_hash: str | None = None,
@@ -87,6 +86,7 @@ class OdvService:
         )
         self.node_feed_sk = node_feed_sk
         self.node_feed_vk = node_feed_vk
+        self.node_feed_vkh = node_feed_vkh
         self.node_payment_sk = node_payment_sk
         self.node_payment_vk = node_payment_vk
         self.network = self.chain_query.context.network
@@ -223,43 +223,6 @@ class OdvService:
             logger.error(f"Aggregation sign request failed: {str(e)}")
             raise
 
-    async def attempt_reward_calculation(self, batch_size: int) -> None:
-        """
-        Build reward calculation tx and attempt submitting it,
-        if the process fails there could be cases when we can be sure that it's normal:
-        1. No pending transport utxos found
-        2. Reward calculation was not subsidized (for batch sizes more than one we can wait for second pending transport and try again)
-        3. Transaction submission error (can happen when e.g. utxo already consumed by other oracle node)
-        4. Validation error: conditions for reward calculation have not been yet met
-        """
-        try:
-            res = await self.odv_tx_builder.build_rewards_tx(
-                signing_key=self.node_payment_sk,
-                change_address=self.node_payment_addr,
-                max_inputs=batch_size,
-                check_if_tx_fee_subsidized=self.check_if_reward_calculation_fee_subsidized,
-            )
-            status, _ = await self.tx_manager.sign_and_submit(
-                res.transaction,
-                [self.node_payment_sk],
-                wait_confirmation=True,
-            )
-            if status != "confirmed":
-                logger.warning(f"Rewards calculation transaction failed: {status}")
-            else:
-                logger.info(
-                    f"Rewards calculation transaction submitted: {res.transaction.id.payload.hex()}"
-                )
-
-        except NoPendingTransportUtxosFoundError as e:
-            logger.info(str(e))
-        except RewardCalculationIsNotSubsidizedError as e:
-            logger.warning(
-                f"Try submitting reward calculation without using subsidies: {e}"
-            )
-        except (TransactionError, ValidationError) as e:
-            logger.warning(f"Rewards calculation failed: {e}")
-
     async def attempt_node_collect(self, contract_utxos: list | None = None) -> None:
         """
         Build node collect tx and attempt submitting it,
@@ -274,7 +237,7 @@ class OdvService:
 
             loaded_keys = LoadedKeys(
                 payment_sk=self.node_payment_sk,
-                payment_vk=self.node_payment_vk,
+                payment_vk=self.node_feed_vk,
                 stake_vk=self.node_payment_vk,
                 address=self.node_payment_addr,
             )
@@ -305,7 +268,10 @@ class OdvService:
                         ),
                         loaded_key=loaded_keys,
                         network=self.network,
-                        required_signers=[self.node_payment_vk.hash()],
+                        required_signers=[
+                            self.node_feed_vk.hash(),
+                            self.node_payment_vk.hash(),
+                        ],
                     )
 
                 # Check if transaction was built successfully
@@ -323,7 +289,9 @@ class OdvService:
 
                 # Submit the transaction
                 status, _ = await self.tx_manager.sign_and_submit(
-                    result.transaction, [self.node_payment_sk], wait_confirmation=True
+                    result.transaction,
+                    [self.node_feed_sk, self.node_payment_sk],
+                    wait_confirmation=True,
                 )
                 if status != "confirmed":
                     logger.warning(f"Node collect transaction failed: {status}")
