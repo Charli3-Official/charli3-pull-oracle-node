@@ -272,7 +272,6 @@ class OdvService:
                         network=self.network,
                         required_signers=[
                             self.node_feed_vk.hash(),
-                            self.node_payment_vk.hash(),
                         ],
                     )
 
