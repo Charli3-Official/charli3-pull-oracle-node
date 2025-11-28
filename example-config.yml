@@ -6,7 +6,6 @@ Cache:
   enabled: true
   ttl: 60 # seconds
 
-
 RewardCollection:
   trigger_amount: 500
   reward_destination_address: "base"
@@ -24,7 +23,7 @@ Rate:
   general_base_symbol: STUFF-ADA
   general_quote_symbol: ADA-USD
   base_currency:
-      dexes:
+    dexes:
       - adapter: charli3-dendrite
         asset_a: 51a5e236c4de3af2b8020442e2a26f454fda3b04cb621c1294a0ef34424f4f4b
         asset_b: lovelace
@@ -36,7 +35,7 @@ Rate:
           - sundaeswapv3
           - muesliswap
   quote_currency:
-      cexes:
+    cexes:
       - adapter: ccxt
         asset_a: ADA
         asset_b: USDT

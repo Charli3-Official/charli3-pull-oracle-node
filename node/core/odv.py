@@ -11,7 +11,7 @@ from charli3_offchain_core.models.message import (
     OracleNodeMessage,
     SignedOracleNodeMessage,
 )
-from charli3_offchain_core.models.oracle_datums import NoDatum, SomeAsset
+from charli3_offchain_core.models.oracle_datums import NoDatum, SomeAsset, Asset
 from charli3_offchain_core.oracle.exceptions import (
     AggregationError,
     DataError,
@@ -259,8 +259,10 @@ class OdvService:
                         contract_utxos=contract_utxos,
                         reward_token=(
                             SomeAsset(
-                                policy_id=self.reward_token_policy_hash,
-                                asset_name=self.reward_token_asset_name,
+                                Asset(
+                                    policy_id=self.reward_token_policy_hash.payload,
+                                    name=self.reward_token_asset_name.payload,
+                                )
                             )
                             if self.reward_token_policy_hash
                             and self.reward_token_asset_name
@@ -301,4 +303,4 @@ class OdvService:
                     )
 
         except Exception as e:
-            logger.warning(f"Node collect failed: {e}")
+            logger.error(f"Node collect failed: {e}", exc_info=e)
