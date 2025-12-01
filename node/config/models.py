@@ -54,12 +54,7 @@ class UpdaterConfig:
     """Updater configuration."""
 
     verbosity: str = "INFO"
-    reward_calculator_check_interval: float = 180  # seconds
     reward_collect_check_interval: float = 60  # seconds
-    reward_calculation_dismissing_proximity: int = 43200  # seconds
-    reward_calculation_empty_utxo_threshold: int = 2
-    reward_calculation_batch_size: int = 2
-    check_if_reward_calculation_fee_subsidized: bool = False
 
 
 @dataclass

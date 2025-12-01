@@ -11,11 +11,15 @@ from charli3_offchain_core.models.message import (
     OracleNodeMessage,
     SignedOracleNodeMessage,
 )
-from charli3_offchain_core.models.oracle_datums import NoDatum, SomeAsset
+from charli3_offchain_core.models.oracle_datums import Asset, NoDatum, SomeAsset
 from charli3_offchain_core.oracle.exceptions import (
-    NoPendingTransportUtxosFoundError,
-    RewardCalculationIsNotSubsidizedError,
-    TransactionError,
+    AggregationError,
+    DataError,
+    NFTError,
+    NodeValidationError,
+    SignatureError,
+    StateValidationError,
+    TimestampError,
 )
 from charli3_offchain_core.oracle.rewards.node_collect_builder import NodeCollectBuilder
 from charli3_offchain_core.oracle.validations.aggregation import (
@@ -37,6 +41,7 @@ from pycardano import (
     TransactionBody,
     TransactionWitnessSet,
     VerificationKey,
+    VerificationKeyHash,
 )
 
 from node.core.aggregator import RateAggregator
@@ -58,6 +63,7 @@ class OdvService:
         oracle_curr: str,
         node_feed_sk: ExtendedSigningKey,
         node_feed_vk: VerificationKey,
+        node_feed_vkh: VerificationKeyHash,
         node_payment_sk: PaymentExtendedSigningKey,
         node_payment_vk: PaymentVerificationKey,
         reward_token_hash: str | None = None,
@@ -80,6 +86,7 @@ class OdvService:
         )
         self.node_feed_sk = node_feed_sk
         self.node_feed_vk = node_feed_vk
+        self.node_feed_vkh = node_feed_vkh
         self.node_payment_sk = node_payment_sk
         self.node_payment_vk = node_payment_vk
         self.network = self.chain_query.context.network
@@ -151,17 +158,12 @@ class OdvService:
     ) -> str:
         """Handle ODV aggregation transaction signing."""
         try:
-            logger.info(
-                f"Received transaction body CBOR length: {len(tx_body_cbor_hex)}"
-            )
 
             tx_body_cbor_bytes = bytes.fromhex(tx_body_cbor_hex)
             tx_body_hash_bytes = hashlib.blake2b(
                 tx_body_cbor_bytes, digest_size=32
             ).digest()
-            tx_body_hash_hex = tx_body_hash_bytes.hex()
-
-            logger.info(f"Computed transaction body hash: {tx_body_hash_hex}")
+            # tx_body_hash_hex = tx_body_hash_bytes.hex()
 
             # Deserialize transaction body for validation purposes only
             parsed_tx_body = TransactionBody.from_cbor(tx_body_cbor_hex)
@@ -179,14 +181,14 @@ class OdvService:
             # Validate policy ID consistency
             validate_policy_id_in_messages(validated_node_messages)
 
-            # Validates and returns the reward and agg transport datums
-            reward_transport_datum, _ = validate_transaction_datums(
+            # Validate and extract required datums from the transaction.
+            reward_account_datum, agg_state_datum = validate_transaction_datums(
                 validation_tx, self.oracle_addr
             )
 
-            # Validates that the node updates and aggregation median are correct
+            # Validate median using AggState datum
             median_validation_passed = validate_node_updates_and_aggregation_median(
-                validated_node_messages, reward_transport_datum.datum
+                validated_node_messages, agg_state_datum
             )
 
             if not median_validation_passed:
@@ -201,55 +203,25 @@ class OdvService:
             signature_hex = signature_bytes.hex()
 
             logger.info(
-                f"Transaction signed successfully, signature length: {len(signature_hex)}"
+                f"Transaction signed successfully with signature: {signature_hex}"
             )
 
             return signature_hex
 
+        except (
+            SignatureError,
+            NFTError,
+            DataError,
+            AggregationError,
+            NodeValidationError,
+            StateValidationError,
+            TimestampError,
+        ) as e:
+            logger.warning(f"Validation failed during aggregation signing: {e}")
+            raise ValidationError(str(e)) from e
         except Exception as e:
             logger.error(f"Aggregation sign request failed: {str(e)}")
             raise
-
-        except Exception as e:
-            logger.error(f"Aggregation sign request failed: {str(e)}")
-            raise
-
-    async def attempt_reward_calculation(self, batch_size: int) -> None:
-        """
-        Build reward calculation tx and attempt submitting it,
-        if the process fails there could be cases when we can be sure that it's normal:
-        1. No pending transport utxos found
-        2. Reward calculation was not subsidized (for batch sizes more than one we can wait for second pending transport and try again)
-        3. Transaction submission error (can happen when e.g. utxo already consumed by other oracle node)
-        4. Validation error: conditions for reward calculation have not been yet met
-        """
-        try:
-            res = await self.odv_tx_builder.build_rewards_tx(
-                signing_key=self.node_payment_sk,
-                change_address=self.node_payment_addr,
-                max_inputs=batch_size,
-                check_if_tx_fee_subsidized=self.check_if_reward_calculation_fee_subsidized,
-            )
-            status, _ = await self.tx_manager.sign_and_submit(
-                res.transaction,
-                [self.node_payment_sk],
-                wait_confirmation=True,
-            )
-            if status != "confirmed":
-                logger.warning(f"Rewards calculation transaction failed: {status}")
-            else:
-                logger.info(
-                    f"Rewards calculation transaction submitted: {res.transaction.id.payload.hex()}"
-                )
-
-        except NoPendingTransportUtxosFoundError as e:
-            logger.info(str(e))
-        except RewardCalculationIsNotSubsidizedError as e:
-            logger.warning(
-                f"Try submitting reward calculation without using subsidies: {e}"
-            )
-        except (TransactionError, ValidationError) as e:
-            logger.warning(f"Rewards calculation failed: {e}")
 
     async def attempt_node_collect(self, contract_utxos: list | None = None) -> None:
         """
@@ -265,7 +237,7 @@ class OdvService:
 
             loaded_keys = LoadedKeys(
                 payment_sk=self.node_payment_sk,
-                payment_vk=self.node_payment_vk,
+                payment_vk=self.node_feed_vk,
                 stake_vk=self.node_payment_vk,
                 address=self.node_payment_addr,
             )
@@ -287,8 +259,10 @@ class OdvService:
                         contract_utxos=contract_utxos,
                         reward_token=(
                             SomeAsset(
-                                policy_id=self.reward_token_policy_hash,
-                                asset_name=self.reward_token_asset_name,
+                                Asset(
+                                    policy_id=self.reward_token_policy_hash.payload,
+                                    name=self.reward_token_asset_name.payload,
+                                )
                             )
                             if self.reward_token_policy_hash
                             and self.reward_token_asset_name
@@ -296,7 +270,9 @@ class OdvService:
                         ),
                         loaded_key=loaded_keys,
                         network=self.network,
-                        required_signers=[self.node_payment_vk.hash()],
+                        required_signers=[
+                            self.node_feed_vk.hash(),
+                        ],
                     )
 
                 # Check if transaction was built successfully
@@ -314,7 +290,9 @@ class OdvService:
 
                 # Submit the transaction
                 status, _ = await self.tx_manager.sign_and_submit(
-                    result.transaction, [self.node_payment_sk], wait_confirmation=True
+                    result.transaction,
+                    [self.node_feed_sk, self.node_payment_sk],
+                    wait_confirmation=True,
                 )
                 if status != "confirmed":
                     logger.warning(f"Node collect transaction failed: {status}")
@@ -324,4 +302,4 @@ class OdvService:
                     )
 
         except Exception as e:
-            logger.warning(f"Node collect failed: {e}")
+            logger.error(f"Node collect failed: {e}", exc_info=e)

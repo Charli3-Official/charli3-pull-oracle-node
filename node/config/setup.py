@@ -71,7 +71,9 @@ def setup_dendrite_backend(config):
         if "ws_url" in ogmios_config and "kupo_url" in ogmios_config:
             set_backend(
                 OgmiosKupoBackend(
-                    ogmios_config["ws_url"], ogmios_config["kupo_url"], Network.MAINNET
+                    ogmios_config["ws_url"],
+                    ogmios_config["kupo_url"],
+                    Network.MAINNET,
                 )
             )
             logger.warning("Ogmios backend configured for Mainnet.")
