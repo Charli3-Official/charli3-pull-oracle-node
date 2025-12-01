@@ -1,16 +1,10 @@
 Updater:
   verbosity: INFO
   reward_collect_check_interval: 180 # seconds
-  reward_calculator_check_interval: 180 # seconds
-  reward_calculation_dismissing_proximity: 43200 # seconds
-  reward_calculation_empty_utxo_threshold: 2
-  reward_calculation_batch_size: 2
-  check_if_reward_calculation_fee_subsidized: true
 
 Cache:
   enabled: true
   ttl: 60 # seconds
-
 
 RewardCollection:
   trigger_amount: 500
@@ -29,7 +23,7 @@ Rate:
   general_base_symbol: STUFF-ADA
   general_quote_symbol: ADA-USD
   base_currency:
-      dexes:
+    dexes:
       - adapter: charli3-dendrite
         asset_a: 51a5e236c4de3af2b8020442e2a26f454fda3b04cb621c1294a0ef34424f4f4b
         asset_b: lovelace
@@ -41,7 +35,7 @@ Rate:
           - sundaeswapv3
           - muesliswap
   quote_currency:
-      cexes:
+    cexes:
       - adapter: ccxt
         asset_a: ADA
         asset_b: USDT

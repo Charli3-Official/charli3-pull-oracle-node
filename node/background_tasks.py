@@ -80,16 +80,28 @@ async def check_and_attempt_node_collect(
             utxos, odv_service.oracle_policy_id
         )
 
-        # Find the node's index
-        payment_vkhs = list(settings_datum.nodes.node_map.values())
-        try:
-            node_index = payment_vkhs.index(odv_service.node_payment_vk.hash())
-        except ValueError:
+        feed_vkh = odv_service.node_feed_vkh
+        registered_nodes = list(settings_datum.nodes)
+        if feed_vkh not in registered_nodes:
             logger.warning("Node not registered in oracle settings")
             return
 
-        # Get the node's reward amount
-        node_reward = reward_account_datum.nodes_to_rewards[node_index]
+        node_reward = reward_account_datum.nodes_to_rewards.get(feed_vkh)
+
+        if node_reward is None:
+            logger.warning(
+                f"Node VKH found in settings but not in reward account. "
+                f"This might indicate the reward account hasn't been updated yet or that there are no pending rewards. "
+                f"Feed VKH: {feed_vkh}"
+            )
+            return
+
+        if node_reward <= 0:
+            logger.debug(
+                f"Node has no pending rewards. "
+                f"Feed VKH: {feed_vkh}, Reward: {node_reward}"
+            )
+            return
 
         # Check if reward meets trigger amount
         if node_reward >= config.trigger_amount:
