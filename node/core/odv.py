@@ -11,7 +11,7 @@ from charli3_offchain_core.models.message import (
     OracleNodeMessage,
     SignedOracleNodeMessage,
 )
-from charli3_offchain_core.models.oracle_datums import NoDatum, SomeAsset, Asset
+from charli3_offchain_core.models.oracle_datums import Asset, NoDatum, SomeAsset
 from charli3_offchain_core.oracle.exceptions import (
     AggregationError,
     DataError,
