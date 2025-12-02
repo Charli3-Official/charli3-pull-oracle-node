@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Charli3-Official/odv-multisig-charli3-node-operator-backend/blob/main/SECURITY.md
+    about: Please do not file public issues for security vulnerabilities.
