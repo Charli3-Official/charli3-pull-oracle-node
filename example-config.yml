@@ -63,3 +63,12 @@ ChainQuery:
     ogmios:
       ws_url: ws://mainnet-ws-url
       kupo_url: http://mainnet-kupo-url
+
+reference_script:
+  # The address where the reference script UTXO is locked
+  address: "addr_test1..."
+
+  # The specific UTXO containing the reference script
+  utxo_reference:
+    transaction_id: "YOUR_REFERENCE_SCRIPT_TX_HASH"
+    output_index: 0
