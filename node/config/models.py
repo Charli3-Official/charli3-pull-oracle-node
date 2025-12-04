@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union
 
+from charli3_offchain_core.cli.config.reference_script import ReferenceScriptConfig
+
 
 @dataclass
 class NodeConfig:
@@ -180,6 +182,7 @@ class AppConfig:
     reward_collection: RewardCollectionConfig
     cache: CacheConfig = field(default_factory=lambda: CacheConfig())
     node_sync: Optional[NodeSyncConfig] = None
+    reference_script: Optional[ReferenceScriptConfig] = None
 
     @classmethod
     def from_dict(cls, config: dict[str, Any]) -> "AppConfig":
@@ -196,6 +199,11 @@ class AppConfig:
             node_sync=(
                 NodeSyncConfig(**config.get("NodeSync", {}))
                 if config.get("NodeSync")
+                else None
+            ),
+            reference_script=(
+                ReferenceScriptConfig.from_dict(config.get("reference_script", {}))
+                if config.get("reference_script")
                 else None
             ),
         )

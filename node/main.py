@@ -75,6 +75,7 @@ async def lifespan(app: FastAPI):
             reward_token_name=config.node.reward_token_name,
             reward_destination_address=config.reward_collection.reward_destination_address,
             create_collateral=config.reward_collection.create_collateral,
+            ref_script_config=config.reference_script,
         )
 
         if node_sync_api:
