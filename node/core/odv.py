@@ -75,6 +75,7 @@ class OdvService:
     ):
         self.rate_aggregator = rate_aggregator
         self.chain_query = chain_query
+        self.ref_script_config = ref_script_config
         self.tx_manager = tx_manager
         self.oracle_addr = oracle_addr
         self.oracle_curr = oracle_curr
@@ -268,6 +269,8 @@ class OdvService:
                             else NoDatum()
                         ),
                         loaded_key=loaded_keys,
+                        script_address=self.oracle_script_address,
+                        ref_script_config=self.ref_script_config,
                         network=self.network,
                         required_signers=[
                             self.node_feed_vk.hash(),
