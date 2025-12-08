@@ -6,6 +6,7 @@ import charli3_offchain_core.oracle.aggregate.builder as odv_builder
 from charli3_offchain_core.blockchain.chain_query import ChainQuery
 from charli3_offchain_core.blockchain.transactions import TransactionManager
 from charli3_offchain_core.cli.base import LoadedKeys
+from charli3_offchain_core.cli.config.reference_script import ReferenceScriptConfig
 from charli3_offchain_core.models.base import TxValidityInterval
 from charli3_offchain_core.models.message import (
     OracleNodeMessage,
@@ -70,10 +71,11 @@ class OdvService:
         reward_token_name: str | None = None,
         reward_destination_address: str | None = None,
         create_collateral: bool = True,
-        check_if_reward_calculation_fee_subsidized: bool = False,
+        ref_script_config: ReferenceScriptConfig | None = None,
     ):
         self.rate_aggregator = rate_aggregator
         self.chain_query = chain_query
+        self.ref_script_config = ref_script_config
         self.tx_manager = tx_manager
         self.oracle_addr = oracle_addr
         self.oracle_curr = oracle_curr
@@ -81,9 +83,6 @@ class OdvService:
         self.reward_token_name = reward_token_name
         self.reward_destination_address = reward_destination_address
         self.create_collateral = create_collateral
-        self.check_if_reward_calculation_fee_subsidized = (
-            check_if_reward_calculation_fee_subsidized
-        )
         self.node_feed_sk = node_feed_sk
         self.node_feed_vk = node_feed_vk
         self.node_feed_vkh = node_feed_vkh
@@ -109,6 +108,7 @@ class OdvService:
             policy_id=self.oracle_policy_id,
             reward_token_hash=self.reward_token_policy_hash,
             reward_token_name=self.reward_token_asset_name,
+            ref_script_config=ref_script_config,
         )
 
     async def handle_feed_request(
@@ -269,6 +269,8 @@ class OdvService:
                             else NoDatum()
                         ),
                         loaded_key=loaded_keys,
+                        script_address=self.oracle_script_address,
+                        ref_script_config=self.ref_script_config,
                         network=self.network,
                         required_signers=[
                             self.node_feed_vk.hash(),

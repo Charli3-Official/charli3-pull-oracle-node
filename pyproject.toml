@@ -8,9 +8,9 @@ packages = [{ include = "node" }]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
-pycardano = { git = "https://github.com/Charli3-Official/pycardano.git", branch = "fix/odv-multisig-v0.17.0"}
-odv-multisig-charli3-offchain-core = { git="https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git", branch ="experimental/odv-multisig-pycardano-v0.17.0" }
-charli3-dendrite = {git = "https://github.com/talhahussain7/charli3-dendrite.git", branch = "odv-multisig-v0.17.0"}
+pycardano = { git = "https://github.com/Charli3-Official/pycardano.git", branch = "fix/odv-multisig-v0.17.0-kupo-additions"}
+odv-multisig-charli3-offchain-core = { git="https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git", branch ="feat/odv-multisig-v0.17.0-kupo-additions" }
+charli3-dendrite = {git = "https://github.com/talhahussain7/charli3-dendrite.git", branch = "odv-multisig-v0.17.0-kupo-additions"}
 aiohttp = "^3.8.4"
 python-json-logger = "^2.0.7"
 pycryptodome = "^3.18.0"
