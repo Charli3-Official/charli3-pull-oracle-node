@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union
 
-from charli3_offchain_core.cli.config.reference_script import ReferenceScriptConfig
+from charli3_offchain_core.cli.config.reference_script import (
+    ReferenceScriptConfig,
+    UtxoReference,
+)
 
 
 @dataclass
@@ -202,8 +205,15 @@ class AppConfig:
                 else None
             ),
             reference_script=(
-                ReferenceScriptConfig.from_dict(config.get("reference_script", {}))
-                if config.get("reference_script")
+                ReferenceScriptConfig(
+                    address=config.get("ReferenceScript", {}).get("address"),
+                    utxo_reference=(
+                        UtxoReference(**config["ReferenceScript"]["utxo_reference"])
+                        if config.get("ReferenceScript", {}).get("utxo_reference")
+                        else None
+                    ),
+                )
+                if config.get("ReferenceScript")
                 else None
             ),
         )
