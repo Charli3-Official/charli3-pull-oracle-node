@@ -2577,9 +2577,9 @@ tabulate = "^0.9.0"
 
 [package.source]
 type = "git"
-url = "https://***REMOVED***@github.com/Charli3-Official/odv-multisig-charli3-offchain-core.git"
-reference = "feat/odv-multisig-v0.17.0-kupo-additions"
-resolved_reference = "ff1064aaa9278ac6f68d440952da705e407e78b7"
+url = "https://github.com/Charli3-Official/charli3-pull-oracle-sdk.git"
+reference = "main"
+resolved_reference = "d3e154e064a368cde4d9f0ddb2cc4837b68eef33"
 
 [[package]]
 name = "ogmios"
@@ -5146,4 +5146,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "988242d5fdda565c33f25de32a09b12fb5fb25e7874623fa076901f9234441a5"
+content-hash = "74b90e8aadb2e337f9318a98a7963208fed0f3efef352391a3f7ccf3b19e4fea"

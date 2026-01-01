@@ -1,4 +1,4 @@
-# Charli3 ODV Node Operator Backend
+# Charli3 Pull Oracle ODV Node Operator Backend
 
 This project provides a backend for Node Operators participating in Charli3's ODV (On-Demand Validation) Oracle network. It is designed to fetch, aggregate and validate price data for specified assets, and participate in the ODV protocol through feed signing and transaction aggregation. The node utilizes the pycardano library for Cardano blockchain interactions.
 
