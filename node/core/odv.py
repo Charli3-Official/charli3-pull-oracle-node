@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import charli3_offchain_core.oracle.aggregate.builder as odv_builder
@@ -50,6 +51,14 @@ from node.core.errors import NodeServiceError, RateAggregationError, ValidationE
 from node.services.cli_automation import create_reward_collection_automation
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class FeedResponse:
+    """Wrapper for feed response that includes both the signed message and source breakdown."""
+
+    signed_message: SignedOracleNodeMessage
+    source_breakdown: list[dict[str, Any]]
 
 
 class OdvService:
@@ -113,7 +122,7 @@ class OdvService:
 
     async def handle_feed_request(
         self, oracle_nft_policy_id: str, tx_validity_interval: TxValidityInterval
-    ) -> SignedOracleNodeMessage:
+    ) -> FeedResponse:
         """Handle ODV feed request"""
         try:
             timestamp = self.chain_query.get_current_posix_chain_time_ms()
@@ -148,8 +157,8 @@ class OdvService:
                 verification_key=self.node_feed_vk,
             )
 
-            # Attach source breakdown as additional attribute (not part of CBOR)
-            signed_message.source_breakdown = [
+            # Build source breakdown from filtered rates
+            source_breakdown = [
                 {
                     "source": r.source,
                     "price": r.price,
@@ -159,7 +168,9 @@ class OdvService:
                 for r in source_rates
             ]
 
-            return signed_message
+            return FeedResponse(
+                signed_message=signed_message, source_breakdown=source_breakdown
+            )
 
         except (NodeServiceError, Exception) as e:
             logger.error(str(e))
