@@ -21,10 +21,15 @@ async def get_feed(
 ):
     """Handle ODV feed value request."""
     try:
-        response = await odv_service.handle_feed_request(
+        feed_response = await odv_service.handle_feed_request(
             request.oracle_nft_policy_id, request.tx_validity_interval
         )
-        return NodeFeedResponse.model_validate(response.model_dump())
+
+        # Build response with signed message fields and source breakdown
+        response_dict = feed_response.signed_message.model_dump()
+        response_dict["source_breakdown"] = feed_response.source_breakdown
+
+        return NodeFeedResponse.model_validate(response_dict)
     except NodeServiceError as e:
         return JSONResponse(
             status_code=e.status_code,

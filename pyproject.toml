@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "Charli3 Multi-Sig ODV Node Backend"
 authors = ["talhahussain7 <talhahussainb@gmail.com>"]
 readme = "README.md"
