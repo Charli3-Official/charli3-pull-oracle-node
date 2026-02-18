@@ -24,7 +24,14 @@ async def get_feed(
         response = await odv_service.handle_feed_request(
             request.oracle_nft_policy_id, request.tx_validity_interval
         )
-        return NodeFeedResponse.model_validate(response.model_dump())
+        # Extract source_breakdown if it exists, otherwise use empty list
+        source_breakdown = getattr(response, "source_breakdown", [])
+
+        # Create response with source breakdown
+        response_dict = response.model_dump()
+        response_dict["source_breakdown"] = source_breakdown
+
+        return NodeFeedResponse.model_validate(response_dict)
     except NodeServiceError as e:
         return JSONResponse(
             status_code=e.status_code,

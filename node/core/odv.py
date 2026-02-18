@@ -128,7 +128,7 @@ class OdvService:
             )
 
             # Get and process rate
-            rate, _ = await self.rate_aggregator.fetch_aggregate_rates()
+            rate, source_rates = await self.rate_aggregator.fetch_aggregate_rates()
             if rate is None:
                 raise RateAggregationError("Failed to get aggregated rate for ODV feed")
 
@@ -147,6 +147,18 @@ class OdvService:
                 signature=signature,
                 verification_key=self.node_feed_vk,
             )
+
+            # Attach source breakdown as additional attribute (not part of CBOR)
+            signed_message.source_breakdown = [
+                {
+                    "source": r.source,
+                    "price": r.price,
+                    "timestamp": r.timestamp,
+                    "metadata": r.metadata,
+                }
+                for r in source_rates
+            ]
+
             return signed_message
 
         except (NodeServiceError, Exception) as e:
