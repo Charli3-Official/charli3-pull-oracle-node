@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Maintain dependencies for Poetry (Dependabot uses the 'pip' ecosystem for pyproject.toml)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Maintain GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
