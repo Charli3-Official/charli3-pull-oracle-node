@@ -12,7 +12,7 @@ pycardano = { git = "https://github.com/Charli3-Official/pycardano.git", branch 
 odv-multisig-charli3-offchain-core = { git="https://github.com/Charli3-Official/charli3-pull-oracle-sdk.git", branch ="main" }
 charli3-dendrite = {git = "https://github.com/talhahussain7/charli3-dendrite.git", branch = "odv-multisig-v0.17.0-kupo-additions"}
 aiohttp = "^3.8.4"
-python-json-logger = "^2.0.7"
+python-json-logger = "^4.0.0"
 pycryptodome = "^3.18.0"
 types-pyyaml = "^6.0.12.12"
 asyncpg = "^0.29.0"
