@@ -36,7 +36,7 @@ jobs:
         run: pip install pre-commit
 
       - name: Cache the pre-commit environment
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pre-commit
