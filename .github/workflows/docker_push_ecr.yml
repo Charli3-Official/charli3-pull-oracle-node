@@ -26,7 +26,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build, tag, and push Docker image to GHCR
       if: github.event_name == 'release'
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: .
         push: true
@@ -49,7 +49,7 @@ jobs:
           -d "{\"description\":\"$ESCAPED_DESCRIPTION\"}"
     - name: Build, tag as develop, and push Docker image to GHCR
       if: github.ref == 'refs/heads/develop'
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: .
         push: true
